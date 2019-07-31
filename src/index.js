@@ -12,6 +12,9 @@ import {
   Ptr,
   Lst
 } from "spinal-core-connectorjs_type";
+import {
+  Model
+} from "vue-property-decorator";
 
 // import OperationModel from "./operationModel";
 // import VisitModel from "./visitModel";
@@ -49,6 +52,9 @@ class SpinalVisitService {
     //RELATIONS
     this.CONTEXT_TO_VISIT_RELATION = "hasVisit";
     this.GROUP_TO_TASK = "hasTask";
+
+    this.VISIT_TO_TASK_RELATION = "hasVisitTask";
+    this.TASK_TO_STATE = "hasState";
 
     this._init();
   }
@@ -91,6 +97,7 @@ class SpinalVisitService {
     });
   }
 
+
   getAllVisits() {
     let context = SpinalGraphService.getContext(this.VISIT_CONTEXT_NAME);
 
@@ -113,43 +120,51 @@ class SpinalVisitService {
     interventionMesure,
     description
   ) {
+
     let visitName = SpinalGraphService.getInfo(visitId).type.get();
 
     return SpinalGraphService.getChildren(groupId, [this.GROUP_TO_TASK]).then(
       children => {
-        let nodeId;
+
+        let argNodeId;
         if (children.length === 0) {
-          nodeId = SpinalGraphService.createNode({
+          argNodeId = SpinalGraphService.createNode({
             name: "maintenance"
           });
 
           SpinalGraphService.addChild(
             groupId,
-            nodeId,
+            argNodeId,
             this.GROUP_TO_TASK,
             SPINAL_RELATION_PTR_LST_TYPE
           );
         }
 
         let node =
-          typeof nodeId !== "undefined" ?
-          SpinalGraphService.getInfo(nodeId) :
+          typeof argNodeId !== "undefined" ?
+          SpinalGraphService.getInfo(argNodeId) :
           children[0];
 
         return this.getPtrValue(node, visitName).then(lst => {
-          let task = new VisitModel(taskName, periodicityNumber,
-            periodicityMesure, visitName, interventionNumber,
-            interventionMesure, description);
 
-          lst.push(task);
+          let nodeId = this._prepareNode(groupId, taskName,
+            periodicityNumber,
+            periodicityMesure,
+            visitId,
+            visitName,
+            interventionNumber,
+            interventionMesure,
+            description);
 
-          return task;
+          SpinalGraphService.addChild(visitId, nodeId, this
+            .VISIT_TO_TASK_RELATION, SPINAL_RELATION_PTR_LST_TYPE);
 
-          // let nodeId = SpinalGraphService.createNode({
-          //   name: taskName,
-          //   type: "task",
-          //   visitId: visitId
-          // }, task);
+          let realNode = SpinalGraphService.getRealNode(nodeId);
+
+          lst.push(realNode);
+
+          return realNode.info;
+
         })
       }
     );
@@ -215,6 +230,61 @@ class SpinalVisitService {
       });
 
   }
+
+
+
+  _prepareNode(groupId, taskName,
+    periodicityNumber,
+    periodicityMesure,
+    visitId,
+    visitName,
+    interventionNumber,
+    interventionMesure,
+    description) {
+
+    let task = new VisitModel(taskName, periodicityNumber,
+      periodicityMesure, visitId, visitName, interventionNumber,
+      interventionMesure, description);
+
+    let nodeId = SpinalGraphService.createNode({
+      groupId: groupId,
+      name: taskName,
+      periodicity: {
+        number: task.periodicity.number.get(),
+        mesure: task.periodicity.mesure.get()
+      },
+      intervention: {
+        number: task.intervention.number.get(),
+        mesure: task.intervention.mesure.get()
+      },
+      visitId: visitId,
+      visitType: visitName,
+      description: description
+
+    }, task);
+
+
+    let stateNodeId = SpinalGraphService.createNode({
+      name: "state"
+    }, new Model({
+      name: "state"
+    }));
+
+    SpinalGraphService.addChild(nodeId, stateNodeId, this.TASK_TO_STATE,
+      SPINAL_RELATION_PTR_LST_TYPE);
+
+    let realNode = SpinalGraphService.getRealNode(stateNodeId);
+
+    ["Processing", "Validated", "Invalidated"].forEach((el) => {
+      realNode.info.add_attr([el], new Ptr(new Lst()));
+    })
+
+
+    return nodeId;
+
+  }
+
+
 
   // addOperations(groupId, taskId, date) {
   //   Promise.all([SpinalGraphService.getInfo(taskId).element.load(),
