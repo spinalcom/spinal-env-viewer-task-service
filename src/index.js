@@ -7,14 +7,16 @@ import {
   EQUIPMENTS_TO_ELEMENT_RELATION,
   EQUIPMENTS_GROUP
 } from "spinal-env-viewer-room-manager/js/service";
-import VisitModel from "./visit.model";
+
+import VisitModel from "./models/visit.model.js";
+
 import {
   Ptr,
-  Lst
-} from "spinal-core-connectorjs_type";
-import {
+  Lst,
   Model
-} from "vue-property-decorator";
+} from "spinal-core-connectorjs_type";
+
+import moment from "moment";
 
 // import OperationModel from "./operationModel";
 // import VisitModel from "./visitModel";
@@ -50,13 +52,14 @@ class SpinalVisitService {
     ]);
 
     //RELATIONS
-    this.CONTEXT_TO_VISIT_RELATION = "hasVisit";
+    // this.CONTEXT_TO_VISIT_RELATION = "hasVisit";
     this.GROUP_TO_TASK = "hasTask";
 
-    this.VISIT_TO_TASK_RELATION = "hasVisitTask";
-    this.TASK_TO_STATE = "hasState";
+    this.VISIT_TO_GROUP_RELATION = "visitHasGroup";
+    this.GROUP_TO_EVENT_RELATION = "hasEventState";
+    // this.TASK_TO_STATE = "hasState";
 
-    this._init();
+    // this._init();
   }
 
   _init() {
@@ -99,15 +102,8 @@ class SpinalVisitService {
 
 
   getAllVisits() {
-    let context = SpinalGraphService.getContext(this.VISIT_CONTEXT_NAME);
+    return this.VISITS;
 
-    if (typeof context === "undefined") return Promise.resolve([]);
-
-    let contextId = context.getId().get();
-
-    return SpinalGraphService.getChildren(contextId, [
-      this.CONTEXT_TO_VISIT_RELATION
-    ]);
   }
 
   addTaskOnGroup(
@@ -115,13 +111,13 @@ class SpinalVisitService {
     taskName,
     periodicityNumber,
     periodicityMesure,
-    visitId,
+    visitName,
     interventionNumber,
     interventionMesure,
     description
   ) {
 
-    let visitName = SpinalGraphService.getInfo(visitId).type.get();
+    // let visitName = SpinalGraphService.getInfo(visitId).type.get();
 
     return SpinalGraphService.getChildren(groupId, [this.GROUP_TO_TASK]).then(
       children => {
@@ -147,17 +143,40 @@ class SpinalVisitService {
 
         return this.getPtrValue(node, visitName).then(lst => {
 
-          let nodeId = this._prepareNode(groupId, taskName,
-            periodicityNumber,
-            periodicityMesure,
-            visitId,
-            visitName,
-            interventionNumber,
-            interventionMesure,
-            description);
+          // let nodeId = this._prepareNode(groupId, taskName,
+          //   periodicityNumber,
+          //   periodicityMesure,
+          //   visitId,
+          //   visitName,
+          //   interventionNumber,
+          //   interventionMesure,
+          //   description);
 
-          SpinalGraphService.addChild(visitId, nodeId, this
-            .VISIT_TO_TASK_RELATION, SPINAL_RELATION_PTR_LST_TYPE);
+          // SpinalGraphService.addChild(visitId, nodeId, this
+          //   .VISIT_TO_TASK_RELATION, SPINAL_RELATION_PTR_LST_TYPE);
+
+
+
+          let task = new VisitModel(taskName, periodicityNumber,
+            periodicityMesure, visitName, interventionNumber,
+            interventionMesure, description);
+
+          let nodeId = SpinalGraphService.createNode({
+            groupId: groupId,
+            name: taskName,
+            periodicity: {
+              number: task.periodicity.number.get(),
+              mesure: task.periodicity.mesure.get()
+            },
+            intervention: {
+              number: task.intervention.number.get(),
+              mesure: task.intervention.mesure.get()
+            },
+            visitType: visitName,
+            description: description
+
+          }, task);
+
 
           let realNode = SpinalGraphService.getRealNode(nodeId);
 
@@ -193,10 +212,12 @@ class SpinalVisitService {
 
     return new Promise((resolve) => {
       if (!realNode.info[ptrName]) {
-        realNode.info.add_attr(ptrName, new Ptr(new Lst()));
+        realNode.info.add_attr(ptrName, {
+          tasks: new Ptr(new Lst())
+        });
       }
 
-      realNode.info[ptrName].load((value) => {
+      realNode.info[ptrName].tasks.load((value) => {
         return resolve(value);
       })
     })
@@ -233,121 +254,147 @@ class SpinalVisitService {
 
 
 
-  _prepareNode(groupId, taskName,
-    periodicityNumber,
-    periodicityMesure,
-    visitId,
-    visitName,
-    interventionNumber,
-    interventionMesure,
-    description) {
-
-    let task = new VisitModel(taskName, periodicityNumber,
-      periodicityMesure, visitId, visitName, interventionNumber,
-      interventionMesure, description);
-
-    let nodeId = SpinalGraphService.createNode({
-      groupId: groupId,
-      name: taskName,
-      periodicity: {
-        number: task.periodicity.number.get(),
-        mesure: task.periodicity.mesure.get()
-      },
-      intervention: {
-        number: task.intervention.number.get(),
-        mesure: task.intervention.mesure.get()
-      },
-      visitId: visitId,
-      visitType: visitName,
-      description: description
-
-    }, task);
+  generateEvent(visitType, groupId, eventsData) {
 
 
-    let stateNodeId = SpinalGraphService.createNode({
-      name: "state"
-    }, new Model({
-      name: "state"
-    }));
-
-    SpinalGraphService.addChild(nodeId, stateNodeId, this.TASK_TO_STATE,
-      SPINAL_RELATION_PTR_LST_TYPE);
-
-    let realNode = SpinalGraphService.getRealNode(stateNodeId);
-
-    ["Processing", "Validated", "Invalidated"].forEach((el) => {
-      realNode.info.add_attr([el], new Ptr(new Lst()));
-    })
+    // console.log("inside js", visitType, groupId, taskName, beginDate, endDate,
+    //   periodicityNumber, periodicityMesure);
 
 
-    return nodeId;
+    return this.createVisitContext(visitType)
+      .then(el => {
+        console.log("el", el);
+        return this.linkGroupToVistContext(el.id.get(), groupId).then(
+          res => {
+            console.log("res", res);
+            if (res) {
+              this.addEvent(groupId, "déclaré");
+              this.addEvent(groupId, "Encours");
+              this.addEvent(groupId, "Effectué");
+              this.addEvent(groupId, "déclaré");
+              this.addEvent(groupId, "Encours");
+              this.addEvent(groupId, "Effectué");
+              this.addEvent(groupId, "déclaré");
+              this.addEvent(groupId, "Encours");
+              this.addEvent(groupId, "Effectué");
+              this.addEvent(groupId, "déclaré");
+              this.addEvent(groupId, "Encours");
+              this.addEvent(groupId, "Effectué");
+            }
+          });
+      })
+      .catch(err => {
+        console.log(err);
+        return Promise.resolve(err);
+      })
+
 
   }
 
 
+  addEvent(groupId, state, name, date) {
+    return this.getEventStateNode(groupId, state).then(eventStateNode => {
+      console.log("eventStateNode", eventStateNode);
+    })
+  }
 
-  // addOperations(groupId, taskId, date) {
-  //   Promise.all([SpinalGraphService.getInfo(taskId).element.load(),
-  //     SpinalGraphService.getChildren(
-  //       groupId, [EQUIPMENTS_TO_ELEMENT_RELATION])
-  //   ]).then(async values => {
-  //     let visit = new VisitModel(date);
 
-  //     let taskOperations = await values[0].operations.data.model;
 
-  //     values[1].forEach(el => {
-  //       visit.bims.push(new OperationModel(el.name.get(), el.dbid
-  //         .get()))
-  //     });
 
-  //     taskOperations.push(visit);
+  createVisitContext(visitType) {
 
-  //   })
-  // }
+    let visit = this.VISITS.find(el => {
+      return el.type === visitType;
+    })
 
-  // getGroupOperation(nodeId) {
-  //   let nodeInfo = SpinalGraphService.getInfo(nodeId);
+    if (typeof visit !== "undefined") {
+      const contextName = `.${visit.name}`;
 
-  //   if (nodeInfo.type.get() === EQUIPMENTS_GROUP) {
-  //     return this.getGroupTasks(nodeId).then(tasks => {
-  //       let promises = tasks.map(async el => {
-  //         return {
-  //           taskId: el.id.get(),
-  //           taskName: el.name.get(),
-  //           operations: (await this.getTaskOperations(el.id.get()))
-  //             .get()
-  //         };
-  //       })
+      let context = SpinalGraphService.getContext(contextName);
+      if (typeof context !== "undefined") return Promise.resolve(context
+        .info);
 
-  //       return Promise.all(promises);
-  //     })
-  //   } else {
-  //     return Promise.resolve([]);
-  //   }
+      return SpinalGraphService.addContext(contextName, visitType, new Model({
+        name: this.VISIT_CONTEXT_NAME
+      })).then(contextCreated => {
+        return contextCreated.info;
+      });
 
-  // }
+    } else {
+      return Promise.reject("visitNotFound");
+    }
 
-  // getTaskOperations(taskId, operationDate) {
-  //   let info = SpinalGraphService.getInfo(taskId);
-  //   return info.element.load().then(element => {
-  //     return new Promise((resolve) => {
-  //       element.operations.load((operations) => {
-  //         if (typeof operationDate === "undefined") {
-  //           resolve(operations);
-  //         } else {
-  //           for (let i = 0; i < operations.length; i++) {
-  //             const operation = operations[i];
-  //             if (operation.date.get().toString() ===
-  //               operationDate
-  //               .toString()) {
-  //               resolve(operation[i]);
-  //             }
-  //           }
-  //         }
-  //       })
-  //     })
-  //   })
-  // }
+  }
+
+
+  linkGroupToVistContext(visitContextId, groupId) {
+    return SpinalGraphService.getChildren(visitContextId, [this
+      .VISIT_TO_GROUP_RELATION
+    ]).then(children => {
+      console.log("children", children);
+
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i].id.get();
+        if (child === groupId) return true;
+      }
+
+    }).then(el => {
+
+      console.log("el2222", el)
+
+      if (typeof el === "undefined") {
+        console.log("yes el222 is undefined", visitContextId, groupId)
+        return SpinalGraphService.addChild(visitContextId, groupId, this
+          .VISIT_TO_GROUP_RELATION, SPINAL_RELATION_PTR_LST_TYPE)
+      } else {
+        console.log("node not undefined");
+
+        return el;
+      }
+
+    })
+  }
+
+
+  getEventStateNode(groupId, eventSate) {
+    return SpinalGraphService.getChildren(groupId, [this
+        .GROUP_TO_EVENT_RELATION
+      ])
+      .then(children => {
+
+        for (let i = 0; i < children.length; i++) {
+          const name = children[i].name.get();
+
+          if (name === eventSate) {
+            return children[i];
+          }
+
+        }
+
+      }).then(el => {
+        if (typeof el === "undefined") {
+          let argNodeId = SpinalGraphService.createNode({
+            name: eventSate,
+            state: eventSate,
+            type: "EventState"
+          });
+
+          return SpinalGraphService.addChild(groupId,
+            argNodeId,
+            this.GROUP_TO_EVENT_RELATION,
+            SPINAL_RELATION_PTR_LST_TYPE).then(res => {
+            if (res) return SpinalGraphService.getInfo(
+              argNodeId);
+          })
+        } else {
+          return el;
+        }
+
+      })
+  }
+
+
+
 }
 
 let spinalVisitService = new SpinalVisitService();

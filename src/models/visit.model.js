@@ -2,7 +2,7 @@ import spinalCore from "spinal-core-connectorjs";
 import uuid from "node-uuid";
 
 class VisitModel extends Model {
-  constructor(name, periodicityNumber, periodicityMesure, visitId, visitType,
+  constructor(name, periodicityNumber, periodicityMesure, visitType,
     interventionNumber, interventionMesure, description) {
     super();
     this.add_attr({
@@ -25,7 +25,6 @@ class VisitModel extends Model {
           ]) : ""
       },
       visitType: visitType,
-      visitId: visitId,
       description: description ? description : ""
     })
   }
