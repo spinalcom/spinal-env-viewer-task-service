@@ -332,12 +332,13 @@ class SpinalVisitService {
 
             return children.map(child => {
               let task = new TaskModel(child.name.get(), child.dbid
-                .get(), taskName, 0);
+                .get(), child.bimFileId.get(), taskName, 0);
 
 
               let taskId = SpinalGraphService.createNode({
                 name: child.name.get(),
                 dbId: child.dbid.get(),
+                bimFileId: child.bimFileId.get(),
                 taskName: taskName,
                 state: task.state.get()
               }, task);

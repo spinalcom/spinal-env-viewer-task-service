@@ -6,12 +6,13 @@ import {
 
 class TaskModel extends Model {
 
-  constructor(name, dbId, taskName, state) {
+  constructor(name, dbId, bimFileId, taskName, state) {
     super();
     this.add_attr({
       id: uuid.v4(),
       name: name,
       dbId: dbId,
+      bimFileId: bimFileId,
       taskName: taskName,
       state: new Choice(state, ["notValid", "valid"])
     })
