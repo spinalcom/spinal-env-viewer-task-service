@@ -462,7 +462,15 @@ class SpinalVisitService {
   _formatDate(argDate) {
     let date = new Date(argDate);
 
-    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+    return `${(() => {
+      let d = date.getDate();
+      d.toString().length > 1 ? d : '0' + d;
+    })()}/${(() => {
+
+      let d = date.getMonth() + 1;
+      d.toString().length > 1 ? d : '0' + d;
+
+    })()}/${date.getFullYear()}`;
   }
 
   _eventSateIsValid(eventState) {
