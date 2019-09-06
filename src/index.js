@@ -250,6 +250,7 @@ class SpinalVisitService {
     let eventNodeId = SpinalGraphService.createNode({
         name: name,
         date: date,
+        stateId: stateId,
         state: state,
         groupId: groupId,
         visitId: visitInfo.id
@@ -273,7 +274,7 @@ class SpinalVisitService {
             EQUIPMENTS_TO_ELEMENT_RELATION
           ]).then(children => {
             children.map(child => {
-              let name = `${visitInfo.name}__${child.name.get()}`;
+              let name = `${child.name.get()}`;
               let task = new TaskModel(
                 name,
                 child.dbid.get(),
@@ -284,11 +285,13 @@ class SpinalVisitService {
 
               let taskId = SpinalGraphService.createNode({
                   name: name,
+                  type: "task",
                   dbId: child.dbid.get(),
                   bimFileId: child.bimFileId.get(),
-                  taskName: visitInfo.name,
                   visitId: visitInfo.id,
-                  state: task.state.get()
+                  eventId: eventId,
+                  groupId: groupId,
+                  done: false
                 },
                 task
               );
@@ -438,6 +441,23 @@ class SpinalVisitService {
       });
   }
 
+  validateTask(contextId, groupId, eventId, taskId) {
+    let taskNode = SpinalGraphService.getRealNode(taskId);
+    taskNode.info.done.set(!taskNode.info.done.get());
+    let currentState = SpinalGraphService.getInfo(eventId).stateId.get();
+
+    return this._getState(contextId, groupId, eventId).then(state => {
+      let nextStateId = state.id.get();
+      if (nextStateId === currentState) return true;
+
+      //////////////////////////////////////////////////////
+      //    Deplacer le child de currentState à nextState //
+      //////////////////////////////////////////////////////
+
+    });
+
+  }
+
   ////////////////////////////////////////////////////////////////////////
   //                            PRIVATES                                //
   ////////////////////////////////////////////////////////////////////////
@@ -464,11 +484,11 @@ class SpinalVisitService {
 
     return `${(() => {
       let d = date.getDate();
-      d.toString().length > 1 ? d : '0' + d;
+      return d.toString().length > 1 ? d : '0' + d;
     })()}/${(() => {
 
       let d = date.getMonth() + 1;
-      d.toString().length > 1 ? d : '0' + d;
+      return d.toString().length > 1 ? d : '0' + d;
 
     })()}/${date.getFullYear()}`;
   }
@@ -484,6 +504,27 @@ class SpinalVisitService {
     }
 
     return undefined;
+  }
+
+  _getState(contextId, groupId, eventId) {
+
+    return this.getEventTasks(eventId).then(tasks => {
+      let tasksValidated = tasks.filter(el => el.done);
+      let stateObj;
+
+      if (tasksValidated.length === 0) {
+        stateObj = this.EVENT_STATES.declared;
+      } else if (tasksValidated.length === tasks.length) {
+        stateObj = this.EVENT_STATES.done;
+      } else {
+        stateObj = this.EVENT_STATES.processing;
+      }
+
+      console.log("stateObj", stateObj);
+      return this.getEventStateNode(contextId, groupId, stateObj.type);
+
+    })
+
   }
 
   ////////////////////////////////////////////////////////////////////////
@@ -502,6 +543,23 @@ class SpinalVisitService {
     ).then(res => {
       return res.map(el => el.get());
     });
+  }
+
+
+  getGroupEventStates(contextId, groupId) {
+    let promises = [];
+
+    for (const key in this.EVENT_STATES) {
+      promises.push(
+        this.getEventStateNode(
+          contextId,
+          groupId,
+          this.EVENT_STATES[key].type
+        )
+      );
+    }
+
+    return Promise.all(promises);
   }
 
   getGroupEvents(
@@ -524,51 +582,51 @@ class SpinalVisitService {
 
       if (typeof context !== "undefined") {
         let contextId = context.info.id.get();
-        let promises = [];
 
-        for (const key in this.EVENT_STATES) {
-          promises.push(
-            this.getEventStateNode(
-              contextId,
-              groupId,
-              this.EVENT_STATES[key].type
-            )
-          );
-        }
+        return this.getGroupEventStates(contextId, groupId).then(
+          values => {
+            let prom = values.map(async eventType => {
+              let res = eventType.get();
 
-        return Promise.all(promises).then(values => {
-          let prom = values.map(async eventType => {
-            let res = eventType.get();
+              res["visit_type"] = visitType;
 
-            res["visit_type"] = visitType;
+              let events = await SpinalGraphService.getChildren(
+                res.id, [
+                  this.EVENT_STATE_TO_EVENT_RELATION
+                ]);
 
-            let events = await SpinalGraphService.getChildren(
-              res.id, [
-                this.EVENT_STATE_TO_EVENT_RELATION
-              ]);
+              res["events"] = events.map(el => {
+                return el.get();
+              });
 
-            res["events"] = events.map(el => {
-              return el.get();
+              return res;
             });
 
-            return res;
-          });
+            return Promise.all(prom).then(allEvents => {
+              let values = {};
 
-          return Promise.all(prom).then(allEvents => {
-            let values = {};
+              allEvents.forEach(val => {
+                values[val.state] = val.events;
+              });
 
-            allEvents.forEach(val => {
-              values[val.state] = val.events;
+              return {
+                [visitType]: values
+              };
             });
-
-            return {
-              [visitType]: values
-            };
           });
-        });
       }
     });
   }
+
+  getEventTasks(eventId) {
+    return SpinalGraphService.getChildren(eventId, [this
+        .EVENT_TO_TASK_RELATION
+      ])
+      .then(children => {
+        return children.map(el => el.get())
+      })
+  }
+
 }
 
 let spinalVisitService = new SpinalVisitService();
