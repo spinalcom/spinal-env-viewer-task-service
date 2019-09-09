@@ -227,7 +227,7 @@ class SpinalVisitService {
                       groupId,
                       id,
                       eventInfo,
-                      `${eventInfo.name} ${this._formatDate(date)}`,
+                      `${eventInfo.name}`,
                       new Date(date).getTime()
                     );
                   });
@@ -444,15 +444,17 @@ class SpinalVisitService {
   validateTask(contextId, groupId, eventId, taskId) {
     let taskNode = SpinalGraphService.getRealNode(taskId);
     taskNode.info.done.set(!taskNode.info.done.get());
-    let currentState = SpinalGraphService.getInfo(eventId).stateId.get();
 
-    return this._getState(contextId, groupId, eventId).then(state => {
-      let nextStateId = state.id.get();
-      if (nextStateId === currentState) return true;
+    let currentStateId = SpinalGraphService.getInfo(eventId).stateId.get();
 
-      //////////////////////////////////////////////////////
-      //    Deplacer le child de currentState à nextState //
-      //////////////////////////////////////////////////////
+    return this._getState(contextId, groupId, eventId).then(nextState => {
+
+      let nextStateId = nextState.id.get();
+
+      if (nextStateId === currentStateId) return true;
+
+      return this._switchEventState(eventId, currentStateId, nextStateId,
+        contextId);
 
     });
 
@@ -520,10 +522,40 @@ class SpinalVisitService {
         stateObj = this.EVENT_STATES.processing;
       }
 
-      console.log("stateObj", stateObj);
       return this.getEventStateNode(contextId, groupId, stateObj.type);
 
     })
+
+  }
+
+  _switchEventState(eventId, fromStateId, toStateId, contextId) {
+
+
+    return SpinalGraphService.removeChild(fromStateId, eventId, this
+        .EVENT_STATE_TO_EVENT_RELATION, SPINAL_RELATION_PTR_LST_TYPE)
+      .then(removed => {
+        if (removed) {
+          return SpinalGraphService.addChildInContext(toStateId, eventId,
+              contextId,
+              this.EVENT_STATE_TO_EVENT_RELATION,
+              SPINAL_RELATION_PTR_LST_TYPE)
+            .then(res => {
+              if (typeof res !== "undefined") {
+                let EventNode = SpinalGraphService.getRealNode(eventId);
+                let newState = SpinalGraphService.getInfo(toStateId).state
+                  .get();
+
+
+                EventNode.info.state.set(newState);
+                EventNode.info.stateId.set(toStateId);
+              }
+
+            })
+        } else {
+          return Promise.resolve(false);
+        }
+      })
+
 
   }
 
@@ -590,10 +622,11 @@ class SpinalVisitService {
 
               res["visit_type"] = visitType;
 
-              let events = await SpinalGraphService.getChildren(
-                res.id, [
-                  this.EVENT_STATE_TO_EVENT_RELATION
-                ]);
+              let events = await SpinalGraphService
+                .getChildren(
+                  res.id, [
+                    this.EVENT_STATE_TO_EVENT_RELATION
+                  ]);
 
               res["events"] = events.map(el => {
                 return el.get();
