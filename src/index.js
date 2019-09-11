@@ -47,22 +47,19 @@ class SpinalVisitService {
     });
 
     this.VISITS = Object.freeze([{
-        type: this.MAINTENANCE_VISIT,
-        name: "Maintenance visit"
-      },
-      {
-        type: this.REGULATORY_VISIT,
-        name: "Regulatory visit"
-      },
-      {
-        type: this.SECURITY_VISIT,
-        name: "Security Visit"
-      },
-      {
-        type: this.DIAGNOSTIC_VISIT,
-        name: "Diagnostic visit"
-      }
-    ]);
+      type: this.MAINTENANCE_VISIT,
+      name: "Visite de maintenance"
+    }, {
+      type: this.REGULATORY_VISIT,
+      name: "Visite reglementaire"
+    }, {
+      type: this.SECURITY_VISIT,
+      name: "Visite de securite"
+    }, {
+      type: this.DIAGNOSTIC_VISIT,
+      name: "Visite de diagnostic"
+    }]);
+
 
     this.MAINTENANCE_VISIT_EVENT_STATE_RELATION =
       "maintenanceVisithasEventState";
@@ -458,6 +455,51 @@ class SpinalVisitService {
 
     });
 
+  }
+
+  removeVisitEvents(visitId, removeRelatedEvent) {
+    if (removeRelatedEvent) {
+      return SpinalGraphService.getChildren(visitId, [this
+        .VISIT_TO_EVENT_RELATION
+      ]).then((children) => {
+        let childrenPromise = children.map(el => {
+          return SpinalGraphService.removeFromGraph(el.id.get());
+        })
+
+        return Promise.all(childrenPromise).then(() => {
+          return SpinalGraphService.getInfo(visitId);
+        });
+
+      })
+    } else {
+      return Promise.resolve(SpinalGraphService.getInfo(visitId));
+    }
+  }
+
+  deleteVisit(visitId, removeRelatedEvent) {
+    return this.removeVisitEvents(visitId, removeRelatedEvent).then((
+      info) => {
+
+      if (info) {
+        let groupId = info.groupId.get();
+        let visitContextType = info.visitType.get();
+
+        return this.getGroupVisits(groupId, visitContextType).then(
+          res => {
+            for (let index = 0; index < res.length; index++) {
+              const resVisitId = res[index].info.id.get();
+              if (resVisitId == visitId) {
+                res.remove(res[index]);
+                return true;
+              }
+            }
+            return false;
+          })
+      } else {
+        return false;
+      }
+
+    })
   }
 
   ////////////////////////////////////////////////////////////////////////
