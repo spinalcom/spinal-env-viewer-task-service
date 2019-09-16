@@ -132,11 +132,11 @@ class SpinalVisitService {
               name: visitName,
               periodicity: {
                 number: task.periodicity.number.get(),
-                mesure: task.periodicity.mesure.get()
+                mesure: task.periodicity.mesure
               },
               intervention: {
                 number: task.intervention.number.get(),
-                mesure: task.intervention.mesure.get()
+                mesure: task.intervention.mesure
               },
               visitType: visitType,
               description: description
@@ -152,6 +152,100 @@ class SpinalVisitService {
         });
       }
     );
+  }
+
+  deleteVisit(visitId, removeRelatedEvent) {
+    return this.removeVisitEvents(visitId, removeRelatedEvent).then((
+      info) => {
+
+      if (info) {
+        let groupId = info.groupId.get();
+        let visitContextType = info.visitType.get();
+
+        return this.getGroupVisits(groupId, visitContextType).then(
+          res => {
+            for (let index = 0; index < res.length; index++) {
+              const resVisitId = res[index].info.id.get();
+              if (resVisitId == visitId) {
+                res.remove(res[index]);
+                return true;
+              }
+            }
+            return false;
+          })
+      } else {
+        return false;
+      }
+
+    })
+  }
+
+  editVisit(visitId, newValuesObj) {
+    if (typeof newValuesObj !== "object") {
+      return false;
+    }
+
+    let visitNode = SpinalGraphService.getRealNode(visitId);
+
+    if (typeof visitNode !== "undefined") {
+      for (const key in newValuesObj) {
+        const value = newValuesObj[key];
+
+        if (typeof value === "string" && typeof visitNode.info[key] !==
+          "undefined") {
+
+          visitNode.info[key].set(value);
+
+        } else if (typeof value === "object" && typeof visitNode.info[key] !==
+          "undefined") {
+
+          for (const key2 in value) {
+            const value2 = value[key2];
+
+
+            if (typeof visitNode.info[key][key2] !== "undefined") {
+
+              if (key === "intervention" && key2 === "mesure") {
+
+                if (typeof value2 !== "undefined") {
+
+                  visitNode.info[key][key2].set(new Choice(
+                    value2, [
+                      "minute(s)", "day(s)",
+                      "week(s)", "month(s)",
+                      "year(s)"
+                    ]));
+                } else {
+                  visitNode.info[key][key2].set(NaN);
+                }
+
+              } else if (key === "periodicity" && key2 === "mesure") {
+
+                visitNode.info[key][key2].set(new Choice(value2, [
+                  "day(s)", "week(s)",
+                  "month(s)",
+                  "year(s)"
+                ]));
+              } else {
+                typeof value2 !== "undefined" ? visitNode.info[key][key2].set(
+                  value2) : visitNode.info[key][key2].set(NaN);
+              }
+
+
+            }
+
+          }
+        }
+
+
+      }
+
+      return true;
+
+    }
+
+    return false;
+
   }
 
   getPtrValue(node, ptrName) {
@@ -476,31 +570,7 @@ class SpinalVisitService {
     }
   }
 
-  deleteVisit(visitId, removeRelatedEvent) {
-    return this.removeVisitEvents(visitId, removeRelatedEvent).then((
-      info) => {
 
-      if (info) {
-        let groupId = info.groupId.get();
-        let visitContextType = info.visitType.get();
-
-        return this.getGroupVisits(groupId, visitContextType).then(
-          res => {
-            for (let index = 0; index < res.length; index++) {
-              const resVisitId = res[index].info.id.get();
-              if (resVisitId == visitId) {
-                res.remove(res[index]);
-                return true;
-              }
-            }
-            return false;
-          })
-      } else {
-        return false;
-      }
-
-    })
-  }
 
   ////////////////////////////////////////////////////////////////////////
   //                            PRIVATES                                //
