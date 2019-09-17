@@ -154,30 +154,114 @@ class SpinalVisitService {
     );
   }
 
-  deleteVisit(visitId, removeRelatedEvent) {
-    return this.removeVisitEvents(visitId, removeRelatedEvent).then((
-      info) => {
+  // deleteVisit(visitId, removeRelatedEvent) {
+  //   return this.removeVisitEvents(visitId, removeRelatedEvent).then((
+  //     info) => {
 
-      if (info) {
-        let groupId = info.groupId.get();
-        let visitContextType = info.visitType.get();
+  //     if (info) {
+  //       let groupId = info.groupId.get();
+  //       let visitContextType = info.visitType.get();
 
-        return this.getGroupVisits(groupId, visitContextType).then(
-          res => {
-            for (let index = 0; index < res.length; index++) {
-              const resVisitId = res[index].info.id.get();
-              if (resVisitId == visitId) {
-                res.remove(res[index]);
-                return true;
-              }
-            }
-            return false;
-          })
-      } else {
-        return false;
-      }
+  //       return this.getGroupVisits(groupId, visitContextType).then(
+  //         res => {
+  //           for (let index = 0; index < res.length; index++) {
+  //             const resVisitId = res[index].info.id.get();
+  //             if (resVisitId == visitId) {
+  //               res.remove(res[index]);
+  //               return true;
+  //             }
+  //           }
+  //           return false;
+  //         })
+  //     } else {
+  //       return false;
+  //     }
+
+  //   })
+  // }
+
+  deleteVisit(visitId, removeVisit, removeRelatedEvent, beginDate, endDate) {
+
+    if (removeRelatedEvent) {
+      this.removeVisitEvents(visitId, beginDate, endDate).then(el => {
+        if (removeVisit) {
+          return this.removeVisit(visitId);
+        }
+        return el;
+      })
+    } else if (removeVisit) {
+      return this.removeVisit(visitId);
+    }
+
+  }
+
+  removeVisitEvents(visitId, beginDate, endDate) {
+    // if (removeRelatedEvent) {
+    //   return SpinalGraphService.getChildren(visitId, [this
+    //     .VISIT_TO_EVENT_RELATION
+    //   ]).then((children) => {
+    //     let childrenPromise = children.map(el => {
+    //       return SpinalGraphService.removeFromGraph(el.id.get());
+    //     })
+
+    //     return Promise.all(childrenPromise).then(() => {
+    //       return SpinalGraphService.getInfo(visitId);
+    //     });
+
+    //   })
+    // } else {
+    //   return Promise.resolve(SpinalGraphService.getInfo(visitId));
+    // }
+
+    return this.getEventsBetweenTwoDate(visitId, beginDate, endDate).then(
+      events => {
+        events.forEach(el => {
+          SpinalGraphService.removeFromGraph(el.id);
+        });
+
+        return true;
+
+      })
+
+  }
+
+
+  getEventsBetweenTwoDate(visitId, beginDate, endDate) {
+
+    return SpinalGraphService.getChildren(visitId, [this
+      .VISIT_TO_EVENT_RELATION
+    ]).then((children) => {
+
+      children = children.map(el => el.get());
+
+      return children.filter(el => {
+        return el.date >= beginDate && el.date <= endDate;
+      })
 
     })
+
+  }
+
+  removeVisit(visitId) {
+    let info = SpinalGraphService.getInfo(visitId);
+    if (info) {
+      let groupId = info.groupId.get();
+      let visitContextType = info.visitType.get();
+
+      return this.getGroupVisits(groupId, visitContextType).then(
+        res => {
+          for (let index = 0; index < res.length; index++) {
+            const resVisitId = res[index].info.id.get();
+            if (resVisitId == visitId) {
+              res.remove(res[index]);
+              return true;
+            }
+          }
+          return false;
+        })
+    } else {
+      return Promise.resolve(false);
+    }
   }
 
   editVisit(visitId, newValuesObj) {
@@ -549,25 +633,6 @@ class SpinalVisitService {
 
     });
 
-  }
-
-  removeVisitEvents(visitId, removeRelatedEvent) {
-    if (removeRelatedEvent) {
-      return SpinalGraphService.getChildren(visitId, [this
-        .VISIT_TO_EVENT_RELATION
-      ]).then((children) => {
-        let childrenPromise = children.map(el => {
-          return SpinalGraphService.removeFromGraph(el.id.get());
-        })
-
-        return Promise.all(childrenPromise).then(() => {
-          return SpinalGraphService.getInfo(visitId);
-        });
-
-      })
-    } else {
-      return Promise.resolve(SpinalGraphService.getInfo(visitId));
-    }
   }
 
 
