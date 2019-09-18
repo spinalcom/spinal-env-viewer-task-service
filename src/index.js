@@ -79,6 +79,8 @@ class SpinalVisitService {
     this.VISIT_TYPE_TO_GROUP_RELATION = "visitHasGroup";
     this.EVENT_STATE_TO_EVENT_RELATION = "hasEvent";
     this.EVENT_TO_TASK_RELATION = "hasTask";
+
+    this.TASK_TO_COMMENTS_RELATION = "hasComment"
   }
 
   getAllVisits() {
@@ -835,6 +837,38 @@ class SpinalVisitService {
       .then(children => {
         return children.map(el => el.get())
       })
+  }
+
+  ////////////////////////////////////////////////////////////////////////
+  //                        Comment Manager                             //
+  ////////////////////////////////////////////////////////////////////////
+
+  addComment(taskId, userId, message) {
+    if (message && message.trim().length > 0 && userId) {
+      let commentNodeId = SpinalGraphService.createNode({
+        userId: userId,
+        message: message,
+        taskId: taskId,
+        date: Date.now()
+      });
+
+      if (commentNodeId) {
+        return SpinalGraphService.addChild(taskId, commentNodeId, this
+          .TASK_TO_COMMENTS_RELATION,
+          SPINAL_RELATION_PTR_LST_TYPE);
+      }
+
+    } else {
+      return Promise.reject(false);
+    }
+  }
+
+  getTasksComments(taskId) {
+    return SpinalGraphService.getChildren(taskId, [this
+      .TASK_TO_COMMENTS_RELATION
+    ]).then(children => {
+      return children.map(el => el.get());
+    })
   }
 
 }
