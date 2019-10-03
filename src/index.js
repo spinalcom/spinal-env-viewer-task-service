@@ -227,8 +227,18 @@ class SpinalVisitService {
 
   }
 
+  getVisitEvents(visitId) {
+    return this.getEventsBetweenTwoDate(visitId);
+  }
+
 
   getEventsBetweenTwoDate(visitId, beginDate, endDate) {
+
+    if (typeof beginDate === "undefined")
+      beginDate = 0;
+
+    if (typeof endDate == "undefined")
+      endDate = Date.now() * 31536000000 * 100;
 
     return SpinalGraphService.getChildren(visitId, [this
       .VISIT_TO_EVENT_RELATION
