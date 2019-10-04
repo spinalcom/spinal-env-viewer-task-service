@@ -182,22 +182,24 @@ class SpinalVisitService {
   //   })
   // }
 
-  deleteVisit(visitId, removeVisit, removeRelatedEvent, beginDate, endDate) {
+  deleteVisit(visitId, removeVisit, removeRelatedEvent, beginDate, endDate,
+    reference) {
 
     if (removeRelatedEvent) {
-      this.removeVisitEvents(visitId, beginDate, endDate).then(el => {
-        if (removeVisit) {
-          return this.removeVisit(visitId);
-        }
-        return el;
-      })
+      this.removeVisitEvents(visitId, beginDate, endDate, reference).then(
+        el => {
+          if (removeVisit) {
+            return this.removeVisit(visitId);
+          }
+          return el;
+        })
     } else if (removeVisit) {
       return this.removeVisit(visitId);
     }
 
   }
 
-  removeVisitEvents(visitId, beginDate, endDate) {
+  removeVisitEvents(visitId, beginDate, endDate, reference) {
     // if (removeRelatedEvent) {
     //   return SpinalGraphService.getChildren(visitId, [this
     //     .VISIT_TO_EVENT_RELATION
@@ -215,10 +217,19 @@ class SpinalVisitService {
     //   return Promise.resolve(SpinalGraphService.getInfo(visitId));
     // }
 
+    let conditionValid = (element) => {
+      if (!reference || reference.trim().length === 0) return true;
+
+      return element.reference === reference;
+    }
+
     return this.getEventsBetweenTwoDate(visitId, beginDate, endDate).then(
       events => {
+
         events.forEach(el => {
-          SpinalGraphService.removeFromGraph(el.id);
+          if (conditionValid(el)) {
+            SpinalGraphService.removeFromGraph(el.id);
+          }
         });
 
         return true;
@@ -387,7 +398,8 @@ class SpinalVisitService {
     );
   }
 
-  generateEvent(visitType, groupId, beginDate, endDate, eventsData) {
+  generateEvent(visitType, groupId, beginDate, endDate, eventsData,
+    referenceName) {
     return this.createVisitContext(visitType)
       .then(el => {
         return this.linkGroupToVistContext(el.id.get(), groupId).then(
@@ -415,7 +427,9 @@ class SpinalVisitService {
                       id,
                       eventInfo,
                       `${eventInfo.name}`,
-                      new Date(date).getTime()
+                      new Date(date).getTime(),
+                      Date.now(),
+                      referenceName
                     );
                   });
                 });
@@ -429,14 +443,18 @@ class SpinalVisitService {
       });
   }
 
-  addEvent(visitTypeContextId, groupId, stateId, visitInfo, name, date) {
+  addEvent(visitTypeContextId, groupId, stateId, visitInfo, name, date,
+    creationDate, referenceName) {
     let state = SpinalGraphService.getInfo(stateId).state.get();
 
-    let event = new EventModel(name, date, state, groupId);
+    let event = new EventModel(name, date, state, groupId, creationDate,
+      referenceName);
 
     let eventNodeId = SpinalGraphService.createNode({
         name: name,
         date: date,
+        creation: creationDate,
+        reference: referenceName,
         stateId: stateId,
         state: state,
         groupId: groupId,
