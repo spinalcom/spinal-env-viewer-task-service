@@ -4,8 +4,8 @@ import {
 } from "spinal-env-viewer-graph-service";
 
 import {
-  EQUIPMENTS_TO_ELEMENT_RELATION
-} from "spinal-env-viewer-room-manager/js/service";
+  groupService
+} from "spinal-env-viewer-room-manager/services/service";
 
 import VisitModel from "./models/visit.model.js";
 import EventModel from "./models/event.model.js";
@@ -476,7 +476,7 @@ class SpinalVisitService {
       .then(eventId => {
         if (typeof eventId !== "undefined") {
           return SpinalGraphService.getChildren(groupId, [
-            EQUIPMENTS_TO_ELEMENT_RELATION
+            groupService.constants.GROUP_TO_EQUIPMENTS_RELATION
           ]).then(children => {
             children.map(child => {
               let name = `${child.name.get()}`;
