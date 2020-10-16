@@ -1,2 +1,4 @@
-.babelrc
-src
+jsdoc2md.json
+tsconfig,json
+tslint.json
+Markdown Templates
