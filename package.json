@@ -16,7 +16,8 @@
     "node-uuid": "^1.4.8",
     "spinal-core-connectorjs": "git+https://github.com/spinalcom/spinal-core-connectorjs.git",
     "spinal-env-viewer-graph-service": "git+https://github.com/spinalcom/Spinal-Graph-Service.git",
-    "spinal-env-viewer-plugin-group-manager-service": "git+https://github.com/spinalcom/spinal-env-viewer-plugin-group-manager-service.git"
+    "spinal-env-viewer-plugin-group-manager-service": "git+https://github.com/spinalcom/spinal-env-viewer-plugin-group-manager-service.git",
+    "spinal-env-viewer-plugin-documentation-service": "git+https://github.com/spinalcom/spinal-env-viewer-plugin-documentation-service.git"
   },
   "devDependencies": {
     "@babel/cli": "^7.2.3",

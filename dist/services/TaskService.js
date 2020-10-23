@@ -37,6 +37,8 @@ const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-servi
 const spinal_env_viewer_plugin_group_manager_service_1 = require("spinal-env-viewer-plugin-group-manager-service");
 const SpinalEvent_1 = require("../models/SpinalEvent");
 const constants_1 = require("../types/constants");
+const EventInterface_1 = require("../types/EventInterface");
+const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const moment = require("moment");
 class SpinalEventService {
     ///////////////////////////////////////////////////////////////////////
@@ -89,9 +91,10 @@ class SpinalEventService {
     ///////////////////////////////////////////////////////////////////////
     static createEventBetween(begin, end, periodicity, contextId, groupId, nodeId, eventInfo, userInfo) {
         const dates = this._getDateInterval(begin, end, periodicity);
+        const reference = Date.now();
+        const diff = moment(eventInfo.endDate).diff(moment(eventInfo.startDate)).valueOf();
         const promises = dates.map(el => {
-            const diff = moment(eventInfo.startDate).diff(moment(eventInfo.endDate));
-            const temp_obj = Object.assign(Object.assign({}, eventInfo), { startDate: el, endDate: el + diff });
+            const temp_obj = Object.assign(Object.assign({}, eventInfo), { startDate: moment(el).format('LLLL'), endDate: moment(el).add(diff, "milliseconds").format('LLLL'), reference });
             return this.createEventNode(contextId, groupId, nodeId, temp_obj, userInfo);
         });
         return Promise.all(promises);
@@ -179,15 +182,51 @@ class SpinalEventService {
         return dates;
     }
     static createEventNode(contextId, groupId, nodeId, eventInfo, userInfo) {
-        delete eventInfo.repeat;
+        if (!eventInfo.repeat) {
+            delete eventInfo.periodicity;
+            delete eventInfo.repeatEnd;
+        }
+        if (eventInfo.startDate) {
+            eventInfo.startDate = moment(eventInfo.startDate).format("LLLL");
+        }
+        if (eventInfo.endDate) {
+            eventInfo.endDate = moment(eventInfo.endDate).format("LLLL");
+        }
+        if (eventInfo.creationDate) {
+            eventInfo.creationDate = moment(eventInfo.creationDate).format("LLLL");
+        }
+        if (eventInfo.repeatEnd) {
+            eventInfo.repeatEnd = moment(eventInfo.repeatEnd).format("LLLL");
+        }
         eventInfo.type = SpinalEvent_1.SpinalEvent.EVENT_TYPE;
         eventInfo.user = userInfo;
-        const taskModel = new SpinalEvent_1.SpinalEvent(eventInfo);
-        const eventId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(eventInfo, taskModel);
+        // const taskModel = new SpinalEvent(eventInfo);
+        const eventId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(eventInfo, new spinal_core_connectorjs_type_1.Model());
         return spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.linkElementToGroup(contextId, groupId, eventId).then((result) => __awaiter(this, void 0, void 0, function* () {
             yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChild(nodeId, eventId, constants_1.RELATION_NAME, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            yield this.createAttribute(eventId);
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(eventId);
         }));
+    }
+    static createAttribute(nodeId) {
+        const categoryName = "default";
+        const realNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
+        return spinal_env_viewer_plugin_documentation_service_1.serviceDocumentation.addCategoryAttribute(realNode, categoryName).then((attributeCategory) => {
+            const promises = [];
+            promises.push(spinal_env_viewer_plugin_documentation_service_1.serviceDocumentation.addAttributeByCategory(realNode, attributeCategory, "name", realNode.info.name));
+            const attributes = ["startDate", "endDate", "creationDate", "repeatEnd"];
+            for (const key of attributes) {
+                if (realNode.info[key]) {
+                    // const date = moment(realNode.info[key].get()).format('LL')
+                    promises.push(spinal_env_viewer_plugin_documentation_service_1.serviceDocumentation.addAttributeByCategory(realNode, attributeCategory, key, realNode.info[key]));
+                }
+            }
+            if (realNode.info.periodicity) {
+                const value = `${realNode.info.periodicity.count.get()} ${EventInterface_1.invers_period[realNode.info.periodicity.period.get()]}`;
+                promises.push(spinal_env_viewer_plugin_documentation_service_1.serviceDocumentation.addAttributeByCategory(realNode, attributeCategory, "periodicity", value));
+            }
+            return Promise.all(promises);
+        });
     }
 }
 exports.SpinalEventService = SpinalEventService;

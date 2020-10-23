@@ -28,7 +28,8 @@ import { SpinalGraphService, SPINAL_RELATION_PTR_LST_TYPE } from "spinal-env-vie
 import { groupManagerService } from "spinal-env-viewer-plugin-group-manager-service";
 import { SpinalEvent } from '../models/SpinalEvent';
 import { EVENT_TYPE, RELATION_NAME } from "../types/constants";
-import { EventInterface } from "../types/EventInterface";
+import { EventInterface, invers_period } from "../types/EventInterface";
+import { serviceDocumentation } from "spinal-env-viewer-plugin-documentation-service";
 
 import * as moment from 'moment';
 
@@ -94,12 +95,13 @@ export class SpinalEventService {
     //                             Events                                 //
     ///////////////////////////////////////////////////////////////////////
 
-    public static createEventBetween(begin: number, end: number, periodicity: number, contextId: string, groupId, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<Array<typeof Model>> {
+    public static createEventBetween(begin: string, end: string, periodicity: number, contextId: string, groupId, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<Array<typeof Model>> {
         const dates = this._getDateInterval(begin, end, periodicity);
+        const reference = Date.now()
+        const diff = moment(eventInfo.endDate).diff(moment(eventInfo.startDate)).valueOf();
 
         const promises = dates.map(el => {
-            const diff = moment(eventInfo.startDate).diff(moment(eventInfo.endDate));
-            const temp_obj = { ...eventInfo, startDate: el, endDate: el + diff };
+            const temp_obj = { ...eventInfo, startDate: moment(el).format('LLLL'), endDate: moment(el).add(diff, "milliseconds").format('LLLL'), reference };
             return this.createEventNode(contextId, groupId, nodeId, temp_obj, userInfo);
         })
 
@@ -187,7 +189,7 @@ export class SpinalEventService {
         return groupManagerService.addGroup(contextId, categoryId, name, color);
     }
 
-    private static _getDateInterval(begin: number, end: number, interval: number): Array<number> {
+    private static _getDateInterval(begin: string, end: string, interval: number): Array<number> {
         const dates = []
 
         let tempBegin = moment(begin);
@@ -203,17 +205,53 @@ export class SpinalEventService {
     }
 
     private static createEventNode(contextId: string, groupId, nodeId: string, eventInfo: EventInterface, userInfo: any) {
-        delete eventInfo.repeat;
+        if (!eventInfo.repeat) {
+            delete eventInfo.periodicity;
+            delete eventInfo.repeatEnd;
+        }
+
+        if (eventInfo.startDate) { eventInfo.startDate = moment(eventInfo.startDate).format("LLLL"); }
+        if (eventInfo.endDate) { eventInfo.endDate = moment(eventInfo.endDate).format("LLLL"); }
+        if (eventInfo.creationDate) { eventInfo.creationDate = moment(eventInfo.creationDate).format("LLLL"); }
+        if (eventInfo.repeatEnd) { eventInfo.repeatEnd = moment(eventInfo.repeatEnd).format("LLLL"); }
+
 
         eventInfo.type = SpinalEvent.EVENT_TYPE;
         eventInfo.user = userInfo;
 
-        const taskModel = new SpinalEvent(eventInfo);
-        const eventId = SpinalGraphService.createNode(eventInfo, taskModel);
+
+        // const taskModel = new SpinalEvent(eventInfo);
+        const eventId = SpinalGraphService.createNode(eventInfo, new Model());
         return groupManagerService.linkElementToGroup(contextId, groupId, eventId).then(async (result) => {
             await SpinalGraphService.addChild(nodeId, eventId, RELATION_NAME, SPINAL_RELATION_PTR_LST_TYPE);
+            await this.createAttribute(eventId);
 
             return SpinalGraphService.getInfo(eventId);
+        })
+    }
+
+    private static createAttribute(nodeId: string): any {
+        const categoryName: string = "default";
+        const realNode = SpinalGraphService.getRealNode(nodeId);
+        return serviceDocumentation.addCategoryAttribute(realNode, categoryName).then((attributeCategory) => {
+            const promises = []
+
+            promises.push(serviceDocumentation.addAttributeByCategory(realNode, attributeCategory, "name", <any>realNode.info.name));
+            const attributes = ["startDate", "endDate", "creationDate", "repeatEnd"];
+
+            for (const key of attributes) {
+                if (realNode.info[key]) {
+                    // const date = moment(realNode.info[key].get()).format('LL')
+                    promises.push(serviceDocumentation.addAttributeByCategory(realNode, attributeCategory, key, realNode.info[key]));
+                }
+            }
+
+            if (realNode.info.periodicity) {
+                const value = `${realNode.info.periodicity.count.get()} ${invers_period[realNode.info.periodicity.period.get()]}`
+                promises.push(serviceDocumentation.addAttributeByCategory(realNode, attributeCategory, "periodicity", value));
+            }
+
+            return Promise.all(promises);
         })
     }
 }

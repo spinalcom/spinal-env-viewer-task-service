@@ -24,17 +24,18 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 const spinal_core_connectorjs_type_1 = require("spinal-core-connectorjs_type");
+const moment = require("moment");
 class SpinalEvent extends spinal_core_connectorjs_type_1.Model {
     constructor(task) {
         super();
         if (!!task) {
-            task.creationDate = Date.now();
+            task.creationDate = moment(Date.now()).format("LLLL");
             task.done = false;
             this.add_attr(task);
         }
     }
 }
 exports.SpinalEvent = SpinalEvent;
-SpinalEvent.EVENT_TYPE = "SpinalTask";
+SpinalEvent.EVENT_TYPE = "SpinalEvent";
 spinal_core_connectorjs_type_1.spinalCore.register_models(SpinalEvent);
 //# sourceMappingURL=SpinalEvent.js.map

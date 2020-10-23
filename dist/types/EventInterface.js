@@ -29,4 +29,10 @@ exports.Period = Object.freeze({
     month: 2629800000,
     year: 31557600000
 });
+exports.invers_period = Object.freeze({
+    86400000: "day",
+    604800000: "week",
+    2629800000: "month",
+    31557600000: "year"
+});
 //# sourceMappingURL=EventInterface.js.map

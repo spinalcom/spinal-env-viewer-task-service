@@ -12,7 +12,7 @@ export declare class SpinalEventService {
     static createEventGroup(contextId: string, catgoryId: string, name: string, color: string): Promise<typeof Model>;
     static getEventsGroups(nodeId: string): Promise<Array<typeof Model>>;
     static getFirstStep(nodeId: string): Promise<typeof Model>;
-    static createEventBetween(begin: number, end: number, periodicity: number, contextId: string, groupId: any, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<Array<typeof Model>>;
+    static createEventBetween(begin: string, end: string, periodicity: number, contextId: string, groupId: any, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<Array<typeof Model>>;
     static createEvent(contextId: string, groupId: any, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<typeof Model | Array<typeof Model>>;
     static getEvents(nodeId: string): Promise<any>;
     static updateEvent(eventId: string, newEventInfo: EventInterface): Promise<any | Array<typeof Model>>;
@@ -22,4 +22,5 @@ export declare class SpinalEventService {
     private static _createGroupNode;
     private static _getDateInterval;
     private static createEventNode;
+    private static createAttribute;
 }

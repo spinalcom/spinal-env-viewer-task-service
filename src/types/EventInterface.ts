@@ -29,21 +29,28 @@ export const Period = Object.freeze({
     year: 31557600000
 })
 
+export const invers_period = Object.freeze({
+    86400000: "day",
+    604800000: "week",
+    2629800000: "month",
+    31557600000: "year"
+})
+
 export interface EventInterface {
     contextId?: string;
     groupId?: string;
     categoryId?: string;
     nodeId: string;
     assignedTo?: any;
-    startDate?: number;
+    startDate?: string;
     user?: any;
     description?: string;
-    endDate?: number;
+    endDate?: string;
     periodicity: { count: number, period: number };
     repeat: boolean;
     name: string;
     done?: Boolean;
-    creationDate?: number;
-    repeatEnd?: number;
+    creationDate?: string;
+    repeatEnd?: string;
     [key: string]: any;
 }

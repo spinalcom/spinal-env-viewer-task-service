@@ -24,15 +24,16 @@
 
 import { Model, spinalCore } from "spinal-core-connectorjs_type";
 import { EventInterface } from "../types/EventInterface";
+import * as moment from "moment"
 
 export class SpinalEvent extends Model {
 
-    public static EVENT_TYPE: string = "SpinalTask";
+    public static EVENT_TYPE: string = "SpinalEvent";
 
     constructor(task: EventInterface) {
         super();
         if (!!task) {
-            task.creationDate = Date.now();
+            task.creationDate = moment(Date.now()).format("LLLL");
             task.done = false;
             this.add_attr(task);
         }
