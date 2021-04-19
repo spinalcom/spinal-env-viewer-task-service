@@ -32,6 +32,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.SpinalEventService = void 0;
 const spinal_core_connectorjs_type_1 = require("spinal-core-connectorjs_type");
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const spinal_env_viewer_plugin_group_manager_service_1 = require("spinal-env-viewer-plugin-group-manager-service");
@@ -47,7 +48,7 @@ class SpinalEventService {
     static createEventContext(name, steps) {
         return spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.createGroupContext(name, SpinalEvent_1.SpinalEvent.EVENT_TYPE).then((context) => {
             context.info.add_attr({ steps: new spinal_core_connectorjs_type_1.Ptr(new spinal_core_connectorjs_type_1.Lst(steps)) });
-            return context.info;
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(context.getId().get());
         });
     }
     static getEventContexts() {
@@ -108,8 +109,31 @@ class SpinalEventService {
             return this.createEventNode(contextId, groupId, nodeId, eventInfo, userInfo);
         }
     }
-    static getEvents(nodeId) {
-        return spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(nodeId, [constants_1.RELATION_NAME]);
+    static getEvents(nodeId, start, end) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(nodeId, [constants_1.RELATION_NAME]);
+            if (start && end) {
+                return children.filter(event => {
+                    const date = moment(event.startDate.get());
+                    return date.isSameOrAfter(start) && date.isSameOrBefore(end);
+                });
+            }
+            else if (start && !end) {
+                return children.filter(event => {
+                    const date = moment(event.startDate.get());
+                    return date.isSameOrAfter(start);
+                });
+            }
+            else if (!start && end) {
+                return children.filter(event => {
+                    const date = moment(event.startDate.get());
+                    return date.isSameOrBefore(end);
+                });
+            }
+            else {
+                return children;
+            }
+        });
     }
     static updateEvent(eventId, newEventInfo) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -133,6 +157,19 @@ class SpinalEventService {
                 const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(eventId);
                 return spinal_env_viewer_graph_service_1.SpinalGraphService.removeChild(info.nodeId, eventId, constants_1.RELATION_NAME, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
             });
+        });
+    }
+    static createOrgetDefaultTreeStructure() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const context = yield spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.createGroupContext(constants_1.DEFAULT_CONTEXT_NAME, SpinalEvent_1.SpinalEvent.EVENT_TYPE);
+            const contextId = context.getId().get();
+            const category = yield this.createEventCategory(context, constants_1.DEFAULT_CATEGORY_NAME, "");
+            const group = yield this.createEventGroup(contextId, category.id.get(), constants_1.DEFAULT_GROUP_NAME, "#fff000");
+            return {
+                context: spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(contextId),
+                category,
+                group
+            };
         });
     }
     ///////////////////////////////////////////////////////////////////////

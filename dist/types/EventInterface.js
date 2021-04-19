@@ -23,6 +23,7 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.invers_period = exports.Period = void 0;
 exports.Period = Object.freeze({
     day: 86400000,
     week: 604800000,

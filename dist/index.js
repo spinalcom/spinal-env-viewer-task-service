@@ -23,14 +23,15 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Period = exports.SpinalEventService = exports.SpinalEvent = exports.RELATION_NAME = exports.EVENT_TYPE = exports.CONTEXT_TYPE = void 0;
 const TaskService_1 = require("./services/TaskService");
-exports.SpinalEventService = TaskService_1.SpinalEventService;
+Object.defineProperty(exports, "SpinalEventService", { enumerable: true, get: function () { return TaskService_1.SpinalEventService; } });
 const constants_1 = require("./types/constants");
-exports.CONTEXT_TYPE = constants_1.CONTEXT_TYPE;
-exports.EVENT_TYPE = constants_1.EVENT_TYPE;
-exports.RELATION_NAME = constants_1.RELATION_NAME;
+Object.defineProperty(exports, "CONTEXT_TYPE", { enumerable: true, get: function () { return constants_1.CONTEXT_TYPE; } });
+Object.defineProperty(exports, "EVENT_TYPE", { enumerable: true, get: function () { return constants_1.EVENT_TYPE; } });
+Object.defineProperty(exports, "RELATION_NAME", { enumerable: true, get: function () { return constants_1.RELATION_NAME; } });
 const SpinalEvent_1 = require("./models/SpinalEvent");
-exports.SpinalEvent = SpinalEvent_1.SpinalEvent;
+Object.defineProperty(exports, "SpinalEvent", { enumerable: true, get: function () { return SpinalEvent_1.SpinalEvent; } });
 const EventInterface_1 = require("./types/EventInterface");
-exports.Period = EventInterface_1.Period;
+Object.defineProperty(exports, "Period", { enumerable: true, get: function () { return EventInterface_1.Period; } });
 //# sourceMappingURL=index.js.map

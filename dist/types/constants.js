@@ -23,7 +23,11 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.RELATION_NAME = exports.EVENT_TYPE = exports.CONTEXT_TYPE = exports.DEFAULT_GROUP_NAME = exports.DEFAULT_CATEGORY_NAME = exports.DEFAULT_CONTEXT_NAME = void 0;
 const SpinalEvent_1 = require("../models/SpinalEvent");
+exports.DEFAULT_CONTEXT_NAME = "Default_event_context";
+exports.DEFAULT_CATEGORY_NAME = "Default_category";
+exports.DEFAULT_GROUP_NAME = "Default_group";
 exports.CONTEXT_TYPE = `${SpinalEvent_1.SpinalEvent.EVENT_TYPE}GroupContext`;
 exports.EVENT_TYPE = "SpinalEvent";
 exports.RELATION_NAME = "hasEvent";

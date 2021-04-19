@@ -24,6 +24,10 @@
 
 import { SpinalEvent } from "../models/SpinalEvent";
 
+export const DEFAULT_CONTEXT_NAME: string = "Default_event_context";
+export const DEFAULT_CATEGORY_NAME: string = "Default_category";
+export const DEFAULT_GROUP_NAME: string = "Default_group";
+
 export const CONTEXT_TYPE: string = `${SpinalEvent.EVENT_TYPE}GroupContext`;
 export const EVENT_TYPE: string = "SpinalEvent";
 export const RELATION_NAME: string = "hasEvent";

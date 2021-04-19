@@ -14,9 +14,14 @@ export declare class SpinalEventService {
     static getFirstStep(nodeId: string): Promise<typeof Model>;
     static createEventBetween(begin: string, end: string, periodicity: number, contextId: string, groupId: any, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<Array<typeof Model>>;
     static createEvent(contextId: string, groupId: any, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<typeof Model | Array<typeof Model>>;
-    static getEvents(nodeId: string): Promise<any>;
+    static getEvents(nodeId: string, start?: Date, end?: Date): Promise<any>;
     static updateEvent(eventId: string, newEventInfo: EventInterface): Promise<any | Array<typeof Model>>;
     static removeEvent(eventId: string): Promise<any>;
+    static createOrgetDefaultTreeStructure(): Promise<{
+        context: typeof Model;
+        category: typeof Model;
+        group: typeof Model;
+    }>;
     private static _updateEventInformation;
     private static _getSteps;
     private static _createGroupNode;
