@@ -27,7 +27,7 @@ import { Ptr, Lst, Model } from "spinal-core-connectorjs_type";
 import { SpinalGraphService, SPINAL_RELATION_PTR_LST_TYPE } from "spinal-env-viewer-graph-service";
 import { groupManagerService } from "spinal-env-viewer-plugin-group-manager-service";
 import { SpinalEvent } from '../models/SpinalEvent';
-import { EVENT_TYPE, RELATION_NAME } from "../types/constants";
+import { DEFAULT_CATEGORY_NAME, DEFAULT_CONTEXT_NAME, DEFAULT_GROUP_NAME, EVENT_TYPE, RELATION_NAME } from "../types/constants";
 import { EventInterface, invers_period } from "../types/EventInterface";
 import { serviceDocumentation } from "spinal-env-viewer-plugin-documentation-service";
 
@@ -41,7 +41,7 @@ export class SpinalEventService {
     public static createEventContext(name: string, steps: Array<{ name: string, order, color }>): Promise<typeof Model> {
         return groupManagerService.createGroupContext(name, SpinalEvent.EVENT_TYPE).then((context) => {
             context.info.add_attr({ steps: new Ptr(new Lst(steps)) });
-            return context.info;
+            return SpinalGraphService.getInfo(context.getId().get());
         })
     }
 
@@ -70,6 +70,8 @@ export class SpinalEventService {
             return Promise.all(promises).then(() => node.info);
         })
     }
+
+
 
     ///////////////////////////////////////////////////////////////////////
     //                             STEPS                                 //
@@ -117,8 +119,27 @@ export class SpinalEventService {
         }
     }
 
-    public static getEvents(nodeId: string): Promise<any> {
-        return SpinalGraphService.getChildren(nodeId, [RELATION_NAME]);
+    public static async getEvents(nodeId: string, start?: Date, end?: Date): Promise<any> {
+        const children = await SpinalGraphService.getChildren(nodeId, [RELATION_NAME]);
+        if (start && end) {
+            return children.filter(event => {
+                const date = moment(event.startDate.get());
+                return date.isSameOrAfter(start) && date.isSameOrBefore(end);
+            })
+
+        } else if (start && !end) {
+            return children.filter(event => {
+                const date = moment(event.startDate.get());
+                return date.isSameOrAfter(start);
+            })
+        } else if (!start && end) {
+            return children.filter(event => {
+                const date = moment(event.startDate.get());
+                return date.isSameOrBefore(end);
+            })
+        } else {
+            return children;
+        }
     }
 
     public static async updateEvent(eventId: string, newEventInfo: EventInterface): Promise<any | Array<typeof Model>> {
@@ -150,6 +171,18 @@ export class SpinalEventService {
 
             return SpinalGraphService.removeChild(info.nodeId, eventId, RELATION_NAME, SPINAL_RELATION_PTR_LST_TYPE);
         })
+    }
+
+    public static async createOrgetDefaultTreeStructure(): Promise<{ context: typeof Model; category: typeof Model; group: typeof Model; }> {
+        const context = await groupManagerService.createGroupContext(DEFAULT_CONTEXT_NAME, SpinalEvent.EVENT_TYPE)
+        const contextId = context.getId().get();
+        const category = await this.createEventCategory(context, DEFAULT_CATEGORY_NAME, "");
+        const group = await this.createEventGroup(contextId, (<any>category).id.get(), DEFAULT_GROUP_NAME, "#fff000");
+        return {
+            context: <any>SpinalGraphService.getInfo(contextId),
+            category,
+            group
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -190,7 +223,7 @@ export class SpinalEventService {
     }
 
     private static _getDateInterval(begin: string, end: string, interval: number): Array<number> {
-        const dates = []
+        const dates = [];
 
         let tempBegin = moment(begin);
         let tempEnd = moment(end);

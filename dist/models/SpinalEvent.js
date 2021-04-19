@@ -23,6 +23,7 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.SpinalEvent = void 0;
 const spinal_core_connectorjs_type_1 = require("spinal-core-connectorjs_type");
 const moment = require("moment");
 class SpinalEvent extends spinal_core_connectorjs_type_1.Model {
