@@ -34,4 +34,10 @@ const SpinalEvent_1 = require("./models/SpinalEvent");
 Object.defineProperty(exports, "SpinalEvent", { enumerable: true, get: function () { return SpinalEvent_1.SpinalEvent; } });
 const EventInterface_1 = require("./types/EventInterface");
 Object.defineProperty(exports, "Period", { enumerable: true, get: function () { return EventInterface_1.Period; } });
+const globalRoot = typeof window === "undefined" ? global : window;
+if (typeof globalRoot.spinal === 'undefined')
+    globalRoot.spinal = {};
+if (typeof globalRoot.spinal.SpinalEventService === 'undefined') {
+    globalRoot.spinal.SpinalEventService = TaskService_1.SpinalEventService;
+}
 //# sourceMappingURL=index.js.map

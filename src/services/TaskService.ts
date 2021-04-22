@@ -123,19 +123,19 @@ export class SpinalEventService {
         const children = await SpinalGraphService.getChildren(nodeId, [RELATION_NAME]);
         if (start && end) {
             return children.filter(event => {
-                const date = moment(event.startDate.get());
-                return date.isSameOrAfter(start) && date.isSameOrBefore(end);
+                const date = moment(event.startDate.get(), "x");
+                return date.isSameOrAfter(start.getTime()) && date.isSameOrBefore(end.getTime());
             })
 
         } else if (start && !end) {
             return children.filter(event => {
-                const date = moment(event.startDate.get());
-                return date.isSameOrAfter(start);
+                const date = moment(event.startDate.get(), "x");
+                return date.isSameOrAfter(start.getTime());
             })
         } else if (!start && end) {
             return children.filter(event => {
-                const date = moment(event.startDate.get());
-                return date.isSameOrBefore(end);
+                const date = moment(event.startDate.get(), "x");
+                return date.isSameOrBefore(end.getTime());
             })
         } else {
             return children;
@@ -176,7 +176,7 @@ export class SpinalEventService {
     public static async createOrgetDefaultTreeStructure(): Promise<{ context: typeof Model; category: typeof Model; group: typeof Model; }> {
         const context = await groupManagerService.createGroupContext(DEFAULT_CONTEXT_NAME, SpinalEvent.EVENT_TYPE)
         const contextId = context.getId().get();
-        const category = await this.createEventCategory(context, DEFAULT_CATEGORY_NAME, "");
+        const category = await this.createEventCategory(contextId, DEFAULT_CATEGORY_NAME, "");
         const group = await this.createEventGroup(contextId, (<any>category).id.get(), DEFAULT_GROUP_NAME, "#fff000");
         return {
             context: <any>SpinalGraphService.getInfo(contextId),
@@ -211,6 +211,8 @@ export class SpinalEventService {
 
     private static async _getSteps(contextId: string) {
         const info = SpinalGraphService.getInfo(contextId);
+        if (!info.steps) return [];
+
         return new Promise((resolve) => {
             info.steps.load((data) => {
                 resolve(data.get());
