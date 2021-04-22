@@ -29,6 +29,13 @@ import {
 import { SpinalEvent } from "./models/SpinalEvent";
 import { Period } from './types/EventInterface'
 
+const globalRoot: any = typeof window === "undefined" ? global : window;
+
+if (typeof globalRoot.spinal === 'undefined') globalRoot.spinal = {};
+
+if (typeof globalRoot.spinal.SpinalEventService === 'undefined') {
+    globalRoot.spinal.SpinalEventService = SpinalEventService;
+}
 
 export {
     CONTEXT_TYPE,

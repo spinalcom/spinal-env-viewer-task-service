@@ -114,20 +114,20 @@ class SpinalEventService {
             const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(nodeId, [constants_1.RELATION_NAME]);
             if (start && end) {
                 return children.filter(event => {
-                    const date = moment(event.startDate.get());
-                    return date.isSameOrAfter(start) && date.isSameOrBefore(end);
+                    const date = moment(event.startDate.get(), "x");
+                    return date.isSameOrAfter(start.getTime()) && date.isSameOrBefore(end.getTime());
                 });
             }
             else if (start && !end) {
                 return children.filter(event => {
-                    const date = moment(event.startDate.get());
-                    return date.isSameOrAfter(start);
+                    const date = moment(event.startDate.get(), "x");
+                    return date.isSameOrAfter(start.getTime());
                 });
             }
             else if (!start && end) {
                 return children.filter(event => {
-                    const date = moment(event.startDate.get());
-                    return date.isSameOrBefore(end);
+                    const date = moment(event.startDate.get(), "x");
+                    return date.isSameOrBefore(end.getTime());
                 });
             }
             else {
@@ -163,7 +163,7 @@ class SpinalEventService {
         return __awaiter(this, void 0, void 0, function* () {
             const context = yield spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.createGroupContext(constants_1.DEFAULT_CONTEXT_NAME, SpinalEvent_1.SpinalEvent.EVENT_TYPE);
             const contextId = context.getId().get();
-            const category = yield this.createEventCategory(context, constants_1.DEFAULT_CATEGORY_NAME, "");
+            const category = yield this.createEventCategory(contextId, constants_1.DEFAULT_CATEGORY_NAME, "");
             const group = yield this.createEventGroup(contextId, category.id.get(), constants_1.DEFAULT_GROUP_NAME, "#fff000");
             return {
                 context: spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(contextId),
@@ -198,6 +198,8 @@ class SpinalEventService {
     static _getSteps(contextId) {
         return __awaiter(this, void 0, void 0, function* () {
             const info = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(contextId);
+            if (!info.steps)
+                return [];
             return new Promise((resolve) => {
                 info.steps.load((data) => {
                     resolve(data.get());
