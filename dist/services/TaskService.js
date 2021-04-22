@@ -114,19 +114,19 @@ class SpinalEventService {
             const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(nodeId, [constants_1.RELATION_NAME]);
             if (start && end) {
                 return children.filter(event => {
-                    const date = moment(event.startDate.get(), "x");
+                    const date = moment(event.startDate.get());
                     return date.isSameOrAfter(start.getTime()) && date.isSameOrBefore(end.getTime());
                 });
             }
             else if (start && !end) {
                 return children.filter(event => {
-                    const date = moment(event.startDate.get(), "x");
+                    const date = moment(event.startDate.get());
                     return date.isSameOrAfter(start.getTime());
                 });
             }
             else if (!start && end) {
                 return children.filter(event => {
-                    const date = moment(event.startDate.get(), "x");
+                    const date = moment(event.startDate.get());
                     return date.isSameOrBefore(end.getTime());
                 });
             }
