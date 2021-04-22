@@ -100,10 +100,15 @@ export class SpinalEventService {
     public static createEventBetween(begin: string, end: string, periodicity: number, contextId: string, groupId, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<Array<typeof Model>> {
         const dates = this._getDateInterval(begin, end, periodicity);
         const reference = Date.now()
-        const diff = moment(eventInfo.endDate).diff(moment(eventInfo.startDate)).valueOf();
+        const isoEndDate = new Date(eventInfo.endDate).toISOString();
+        const isoStartDate = new Date(eventInfo.startDate).toISOString();
+
+        const diff = moment(isoEndDate).diff(moment(isoStartDate)).valueOf();
 
         const promises = dates.map(el => {
-            const temp_obj = { ...eventInfo, startDate: moment(el).format('LLLL'), endDate: moment(el).add(diff, "milliseconds").format('LLLL'), reference };
+            const isoEl = new Date(el).toISOString();
+
+            const temp_obj = { ...eventInfo, startDate: moment(isoEl).format('LLLL'), endDate: moment(isoEl).add(diff, "milliseconds").format('LLLL'), reference };
             return this.createEventNode(contextId, groupId, nodeId, temp_obj, userInfo);
         })
 
@@ -121,20 +126,24 @@ export class SpinalEventService {
 
     public static async getEvents(nodeId: string, start?: Date, end?: Date): Promise<any> {
         const children = await SpinalGraphService.getChildren(nodeId, [RELATION_NAME]);
+
         if (start && end) {
             return children.filter(event => {
-                const date = moment(event.startDate.get());
+                const isoDate = new Date(event.startDate.get()).toISOString();
+                const date = moment(isoDate);
                 return date.isSameOrAfter(start.getTime()) && date.isSameOrBefore(end.getTime());
             })
 
         } else if (start && !end) {
             return children.filter(event => {
-                const date = moment(event.startDate.get());
+                const isoDate = new Date(event.startDate.get()).toISOString();
+                const date = moment(isoDate);
                 return date.isSameOrAfter(start.getTime());
             })
         } else if (!start && end) {
             return children.filter(event => {
-                const date = moment(event.startDate.get());
+                const isoDate = new Date(event.startDate.get()).toISOString();
+                const date = moment(isoDate);
                 return date.isSameOrBefore(end.getTime());
             })
         } else {
@@ -227,8 +236,11 @@ export class SpinalEventService {
     private static _getDateInterval(begin: string, end: string, interval: number): Array<number> {
         const dates = [];
 
-        let tempBegin = moment(begin);
-        let tempEnd = moment(end);
+        const beginDate = new Date(begin).toISOString();
+        const endDate = new Date(end).toISOString();
+
+        let tempBegin = moment(beginDate);
+        let tempEnd = moment(endDate);
 
         while (tempEnd.diff(tempBegin) >= 0) {
             dates.push(tempBegin.valueOf());
@@ -245,10 +257,22 @@ export class SpinalEventService {
             delete eventInfo.repeatEnd;
         }
 
-        if (eventInfo.startDate) { eventInfo.startDate = moment(eventInfo.startDate).format("LLLL"); }
-        if (eventInfo.endDate) { eventInfo.endDate = moment(eventInfo.endDate).format("LLLL"); }
-        if (eventInfo.creationDate) { eventInfo.creationDate = moment(eventInfo.creationDate).format("LLLL"); }
-        if (eventInfo.repeatEnd) { eventInfo.repeatEnd = moment(eventInfo.repeatEnd).format("LLLL"); }
+        if (eventInfo.startDate) {
+            let date = new Date(eventInfo.startDate).toISOString();
+            eventInfo.startDate = moment(date).format("LLLL");
+        }
+        if (eventInfo.endDate) {
+            let date = new Date(eventInfo.endDate).toISOString();
+            eventInfo.endDate = moment(date).format("LLLL");
+        }
+        if (eventInfo.creationDate) {
+            let date = new Date(eventInfo.creationDate).toISOString();
+            eventInfo.creationDate = moment(date).format("LLLL");
+        }
+        if (eventInfo.repeatEnd) {
+            let date = new Date(eventInfo.repeatEnd).toISOString();
+            eventInfo.repeatEnd = moment(date).format("LLLL");
+        }
 
 
         eventInfo.type = SpinalEvent.EVENT_TYPE;
