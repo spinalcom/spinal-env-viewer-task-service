@@ -123,18 +123,18 @@ export class SpinalEventService {
         const children = await SpinalGraphService.getChildren(nodeId, [RELATION_NAME]);
         if (start && end) {
             return children.filter(event => {
-                const date = moment(event.startDate.get(), "x");
+                const date = moment(event.startDate.get());
                 return date.isSameOrAfter(start.getTime()) && date.isSameOrBefore(end.getTime());
             })
 
         } else if (start && !end) {
             return children.filter(event => {
-                const date = moment(event.startDate.get(), "x");
+                const date = moment(event.startDate.get());
                 return date.isSameOrAfter(start.getTime());
             })
         } else if (!start && end) {
             return children.filter(event => {
-                const date = moment(event.startDate.get(), "x");
+                const date = moment(event.startDate.get());
                 return date.isSameOrBefore(end.getTime());
             })
         } else {
