@@ -157,12 +157,19 @@ class SpinalEventService {
     }
     static removeEvent(eventId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const info = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(eventId).get();
-            return spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.unLinkElementToGroup(info.groupId, eventId).then((result) => {
-                // console.log(result);
-                const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(eventId);
-                return spinal_env_viewer_graph_service_1.SpinalGraphService.removeChild(info.nodeId, eventId, constants_1.RELATION_NAME, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
-            });
+            //console.log("removeEvent");
+            const groupInfo = yield this._getGroupId(eventId);
+            // console.log("groupInfo", groupInfo);
+            if (groupInfo) {
+                return spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.unLinkElementToGroup(groupInfo.id.get(), eventId).then((result) => __awaiter(this, void 0, void 0, function* () {
+                    // console.log(result);
+                    const nodeInfo = yield this._getNodeId(eventId);
+                    if (nodeInfo) {
+                        // console.log("nodeInfo", nodeInfo);
+                        return spinal_env_viewer_graph_service_1.SpinalGraphService.removeChild(nodeInfo.id.get(), eventId, constants_1.RELATION_NAME, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+                    }
+                }));
+            }
         });
     }
     static createOrgetDefaultTreeStructure() {
@@ -249,6 +256,9 @@ class SpinalEventService {
             let date = new Date(eventInfo.repeatEnd).toISOString();
             eventInfo.repeatEnd = moment(date).format("LLLL");
         }
+        eventInfo.contextId = contextId;
+        eventInfo.groupId = groupId;
+        eventInfo.nodeId = nodeId;
         eventInfo.type = SpinalEvent_1.SpinalEvent.EVENT_TYPE;
         eventInfo.user = userInfo;
         // const taskModel = new SpinalEvent(eventInfo);
@@ -277,6 +287,28 @@ class SpinalEventService {
                 promises.push(spinal_env_viewer_plugin_documentation_service_1.serviceDocumentation.addAttributeByCategory(realNode, attributeCategory, "periodicity", value));
             }
             return Promise.all(promises);
+        });
+    }
+    static _getGroupId(eventId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const info = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(eventId);
+            let groupInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(info.groupId);
+            if (groupInfo) {
+                return groupInfo;
+            }
+            const parents = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(eventId, [`groupHas${constants_1.EVENT_TYPE}`]);
+            return parents.find(el => el.id.get() === info.groupId.get());
+        });
+    }
+    static _getNodeId(eventId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const info = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(eventId);
+            let nodeInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(info.nodeId);
+            if (nodeInfo) {
+                return nodeInfo;
+            }
+            const parents = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(eventId, [constants_1.RELATION_NAME]);
+            return parents.find(el => el.id.get() === info.nodeId.get());
         });
     }
 }
