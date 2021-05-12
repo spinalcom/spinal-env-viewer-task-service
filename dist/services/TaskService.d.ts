@@ -28,4 +28,6 @@ export declare class SpinalEventService {
     private static _getDateInterval;
     private static createEventNode;
     private static createAttribute;
+    private static _getGroupId;
+    private static _getNodeId;
 }
