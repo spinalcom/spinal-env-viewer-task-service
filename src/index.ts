@@ -23,11 +23,10 @@
  */
 
 import { SpinalEventService } from "./services/TaskService";
-import {
-    CONTEXT_TYPE, EVENT_TYPE, RELATION_NAME
-} from "./types/constants";
 import { SpinalEvent } from "./models/SpinalEvent";
-import { Period } from './types/EventInterface'
+
+export * from "./types/constants";
+export * from "./types/EventInterface";
 
 const globalRoot: any = typeof window === "undefined" ? global : window;
 
@@ -38,10 +37,6 @@ if (typeof globalRoot.spinal.SpinalEventService === 'undefined') {
 }
 
 export {
-    CONTEXT_TYPE,
-    EVENT_TYPE,
-    RELATION_NAME,
     SpinalEvent,
-    SpinalEventService,
-    Period
+    SpinalEventService
 }

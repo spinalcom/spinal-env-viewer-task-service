@@ -24,7 +24,7 @@
 
 
 import { Ptr, Lst, Model } from "spinal-core-connectorjs_type";
-import { SpinalGraphService, SPINAL_RELATION_PTR_LST_TYPE } from "spinal-env-viewer-graph-service";
+import { SpinalGraph, SpinalGraphService, SpinalNode, SpinalNodeRef, SPINAL_RELATION_PTR_LST_TYPE } from "spinal-env-viewer-graph-service";
 import { groupManagerService } from "spinal-env-viewer-plugin-group-manager-service";
 import { SpinalEvent } from '../models/SpinalEvent';
 import { DEFAULT_CATEGORY_NAME, DEFAULT_CONTEXT_NAME, DEFAULT_GROUP_NAME, EVENT_TYPE, RELATION_NAME } from "../types/constants";
@@ -32,21 +32,23 @@ import { EventInterface, invers_period } from "../types/EventInterface";
 import { serviceDocumentation } from "spinal-env-viewer-plugin-documentation-service";
 
 import * as moment from 'moment';
+import { SpinalAttribute } from "spinal-model-timeseries";
 
 export class SpinalEventService {
 
     ///////////////////////////////////////////////////////////////////////
     //                          CONTEXTS                                 //
     ///////////////////////////////////////////////////////////////////////
-    public static createEventContext(name: string, steps: Array<{ name: string, order, color }>): Promise<typeof Model> {
+    public static createEventContext(name: string, steps?: Array<{ name: string, order, color }>): Promise<SpinalNodeRef> {
+        steps = steps || [];
         return groupManagerService.createGroupContext(name, SpinalEvent.EVENT_TYPE).then((context) => {
             context.info.add_attr({ steps: new Ptr(new Lst(steps)) });
             return SpinalGraphService.getInfo(context.getId().get());
         })
     }
 
-    public static getEventContexts(): Promise<Array<typeof Model>> {
-        return groupManagerService.getGroupContexts(SpinalEvent.EVENT_TYPE).then((contexts) => {
+    public static getEventContexts(graph?: SpinalGraph<any>): Promise<SpinalNodeRef[]> {
+        return groupManagerService.getGroupContexts(SpinalEvent.EVENT_TYPE, graph).then((contexts) => {
             return contexts.map(el => SpinalGraphService.getInfo(el.id));
         })
     }
@@ -55,11 +57,11 @@ export class SpinalEventService {
     //                          CATEGORIES                               //
     ///////////////////////////////////////////////////////////////////////
 
-    public static getEventsCategories(nodeId: string): Promise<Array<typeof Model>> {
+    public static getEventsCategories(nodeId: string): Promise<SpinalNodeRef[]> {
         return groupManagerService.getCategories(nodeId);
     }
 
-    public static createEventCategory(contextId: string, name: string, icon: string): Promise<typeof Model> {
+    public static createEventCategory(contextId: string, name: string, icon: string): Promise<SpinalNodeRef> {
         return groupManagerService.addCategory(contextId, name, icon).then(async (node) => {
             (<any>SpinalGraphService)._addNode(node);
             const id = node.getId().get();
@@ -67,7 +69,7 @@ export class SpinalEventService {
 
             const promises = steps.map(el => this._createGroupNode(contextId, id, el.name, el.color, el.order));
 
-            return Promise.all(promises).then(() => node.info);
+            return Promise.all(promises).then(() => SpinalGraphService.getInfo(id));
         })
     }
 
@@ -77,17 +79,19 @@ export class SpinalEventService {
     //                             STEPS                                 //
     ///////////////////////////////////////////////////////////////////////
 
-    public static createEventGroup(contextId: string, catgoryId: string, name: string, color: string): Promise<typeof Model> {
+    public static createEventGroup(contextId: string, catgoryId: string, name: string, color: string): Promise<SpinalNodeRef> {
         return groupManagerService.addGroup(contextId, catgoryId, name, color).then((node) => {
-            return node.info;
+            //@ts-ignore
+            SpinalGraphService._addNode(node)
+            return SpinalGraphService.getInfo(node.getId().get());
         })
     }
 
-    public static getEventsGroups(nodeId: string): Promise<Array<typeof Model>> {
+    public static getEventsGroups(nodeId: string): Promise<SpinalNodeRef[]> {
         return groupManagerService.getGroups(nodeId);
     }
 
-    public static getFirstStep(nodeId: string): Promise<typeof Model> {
+    public static getFirstStep(nodeId: string): Promise<SpinalNodeRef> {
         return this.getEventsGroups(nodeId).then((steps) => {
             return steps.find((el: any) => el.order.get() === 0);
         })
@@ -97,7 +101,7 @@ export class SpinalEventService {
     //                             Events                                 //
     ///////////////////////////////////////////////////////////////////////
 
-    public static createEventBetween(begin: string, end: string, periodicity: number, contextId: string, groupId, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<Array<typeof Model>> {
+    public static createEventBetween(begin: string, end: string, periodicity: number, contextId: string, groupId, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<SpinalNodeRef[]> {
         const dates = this._getDateInterval(begin, end, periodicity);
         const reference = Date.now()
         const isoEndDate = new Date(eventInfo.endDate).toISOString();
@@ -115,7 +119,7 @@ export class SpinalEventService {
         return Promise.all(promises);
     }
 
-    public static createEvent(contextId: string, groupId, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<typeof Model | Array<typeof Model>> {
+    public static createEvent(contextId: string, groupId, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<SpinalNodeRef | SpinalNodeRef[]> {
         if (eventInfo.repeat) {
             const periodicity = eventInfo.periodicity.count * eventInfo.periodicity.period;
             return this.createEventBetween(eventInfo.startDate, eventInfo.repeatEnd, periodicity, contextId, groupId, nodeId, eventInfo, userInfo);
@@ -124,7 +128,7 @@ export class SpinalEventService {
         }
     }
 
-    public static async getEvents(nodeId: string, start?: Date, end?: Date): Promise<any> {
+    public static async getEvents(nodeId: string, start?: Date, end?: Date): Promise<SpinalNodeRef[]> {
         const children = await SpinalGraphService.getChildren(nodeId, [RELATION_NAME]);
 
         if (start && end) {
@@ -151,52 +155,34 @@ export class SpinalEventService {
         }
     }
 
-    public static async updateEvent(eventId: string, newEventInfo: EventInterface): Promise<any | Array<typeof Model>> {
+    public static async updateEvent(eventId: string, newEventInfo: EventInterface): Promise<SpinalNodeRef> {
 
         this._updateEventInformation(eventId, newEventInfo);
-
-        // if (newEventInfo.repeat) {
-        //     let info = SpinalGraphService.getInfo(eventId).get();
-        //     const periodicity = newEventInfo.periodicity.count * newEventInfo.periodicity.period;
-        //     const begin = newEventInfo.startDate + periodicity;
-        //     const end = newEventInfo.endDate;
-
-        //     info = { ...newEventInfo, contextId: info.contextId, groupId: info.groupId, nodeId: info.nodeId, user: info.user }
-
-        //     return this.createTaskBetween(begin, end, periodicity, info.contextId, info.groupId, info.nodeId, newEventInfo, info.userInfo)
-        // }
 
         return SpinalGraphService.getInfo(eventId);
     }
 
-    public static async removeEvent(eventId: string): Promise<any> {
-        //console.log("removeEvent");
+    public static async removeEvent(eventId: string): Promise<boolean> {
 
         const groupInfo = await this._getGroupId(eventId);
-        // console.log("groupInfo", groupInfo);
 
         if (groupInfo) {
-            return groupManagerService.unLinkElementToGroup(groupInfo.id.get(), eventId).then(async (result) => {
-                // console.log(result);
+            return groupManagerService.unLinkElementToGroup(groupInfo.id.get(), eventId).then(async () => {
 
                 const nodeInfo = await this._getNodeId(eventId);
-                if (nodeInfo) {
-                    // console.log("nodeInfo", nodeInfo);
-                    return SpinalGraphService.removeChild(nodeInfo.id.get(), eventId, RELATION_NAME, SPINAL_RELATION_PTR_LST_TYPE);
-                }
-
+                if (nodeInfo) return SpinalGraphService.removeChild(nodeInfo.id.get(), eventId, RELATION_NAME, SPINAL_RELATION_PTR_LST_TYPE);
             })
         }
 
     }
 
-    public static async createOrgetDefaultTreeStructure(): Promise<{ context: typeof Model; category: typeof Model; group: typeof Model; }> {
-        const context = await groupManagerService.createGroupContext(DEFAULT_CONTEXT_NAME, SpinalEvent.EVENT_TYPE)
+    public static async createOrgetDefaultTreeStructure(graph?: SpinalGraph<any>): Promise<{ context: SpinalNodeRef; category: SpinalNodeRef; group: SpinalNodeRef; }> {
+        const context = await groupManagerService.createGroupContext(DEFAULT_CONTEXT_NAME, SpinalEvent.EVENT_TYPE, graph);
         const contextId = context.getId().get();
         const category = await this.createEventCategory(contextId, DEFAULT_CATEGORY_NAME, "");
         const group = await this.createEventGroup(contextId, (<any>category).id.get(), DEFAULT_GROUP_NAME, "#fff000");
         return {
-            context: <any>SpinalGraphService.getInfo(contextId),
+            context: SpinalGraphService.getInfo(contextId),
             category,
             group
         }
@@ -211,7 +197,7 @@ export class SpinalEventService {
     //                              PRIVATES                               //
     /////////////////////////////////////////////////////////////////////////
 
-    private static async _updateEventInformation(eventId: string, newEventInfo: EventInterface) {
+    private static _updateEventInformation(eventId: string, newEventInfo: EventInterface) {
         const event = SpinalGraphService.getRealNode(eventId);
         if (typeof event === "undefined") return;
 
@@ -224,24 +210,25 @@ export class SpinalEventService {
                 }
             }
         }
+
+
     }
 
-    private static async _getSteps(contextId: string) {
-        const info = SpinalGraphService.getInfo(contextId);
-        if (!info.steps) return [];
-
+    private static _getSteps(contextId: string): Promise<{ name: string; order: number; color: string }[]> {
         return new Promise((resolve) => {
+            const info = SpinalGraphService.getInfo(contextId);
+            if (!info.steps) return resolve([]);
             info.steps.load((data) => {
                 resolve(data.get());
             })
         });
     }
 
-    private static _createGroupNode(contextId: string, categoryId: string, name: string, color: string, order: number) {
+    private static _createGroupNode(contextId: string, categoryId: string, name: string, color: string, order?: number): Promise<SpinalNode<any>> {
         return groupManagerService.addGroup(contextId, categoryId, name, color);
     }
 
-    private static _getDateInterval(begin: string, end: string, interval: number): Array<number> {
+    private static _getDateInterval(begin: string, end: string, interval: number): number[] {
         const dates = [];
 
         const beginDate = new Date(begin).toISOString();
@@ -259,13 +246,11 @@ export class SpinalEventService {
         return dates;
     }
 
-    private static createEventNode(contextId: string, groupId, nodeId: string, eventInfo: EventInterface, userInfo: any) {
+    private static createEventNode(contextId: string, groupId, nodeId: string, eventInfo: EventInterface, userInfo: any): Promise<SpinalNodeRef> {
         if (!eventInfo.repeat) {
             delete eventInfo.periodicity;
             delete eventInfo.repeatEnd;
         }
-
-
 
         if (eventInfo.startDate) {
             let date = new Date(eventInfo.startDate).toISOString();
@@ -301,7 +286,7 @@ export class SpinalEventService {
         })
     }
 
-    private static createAttribute(nodeId: string): any {
+    private static createAttribute(nodeId: string): Promise<SpinalAttribute[]> {
         const categoryName: string = "default";
         const realNode = SpinalGraphService.getRealNode(nodeId);
         return serviceDocumentation.addCategoryAttribute(realNode, categoryName).then((attributeCategory) => {
@@ -326,7 +311,7 @@ export class SpinalEventService {
         })
     }
 
-    private static async _getGroupId(eventId: string): Promise<spinal.Model> {
+    private static async _getGroupId(eventId: string): Promise<SpinalNodeRef> {
         const info = SpinalGraphService.getInfo(eventId);
         let groupInfo = SpinalGraphService.getInfo(info.groupId);
         if (groupInfo) {
@@ -337,7 +322,7 @@ export class SpinalEventService {
         return parents.find(el => el.id.get() === info.groupId.get());
     }
 
-    private static async _getNodeId(eventId): Promise<spinal.Model> {
+    private static async _getNodeId(eventId): Promise<SpinalNodeRef> {
         const info = SpinalGraphService.getInfo(eventId);
         let nodeInfo = SpinalGraphService.getInfo(info.nodeId);
         if (nodeInfo) {

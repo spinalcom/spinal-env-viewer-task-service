@@ -46,13 +46,14 @@ class SpinalEventService {
     //                          CONTEXTS                                 //
     ///////////////////////////////////////////////////////////////////////
     static createEventContext(name, steps) {
+        steps = steps || [];
         return spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.createGroupContext(name, SpinalEvent_1.SpinalEvent.EVENT_TYPE).then((context) => {
             context.info.add_attr({ steps: new spinal_core_connectorjs_type_1.Ptr(new spinal_core_connectorjs_type_1.Lst(steps)) });
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(context.getId().get());
         });
     }
-    static getEventContexts() {
-        return spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.getGroupContexts(SpinalEvent_1.SpinalEvent.EVENT_TYPE).then((contexts) => {
+    static getEventContexts(graph) {
+        return spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.getGroupContexts(SpinalEvent_1.SpinalEvent.EVENT_TYPE, graph).then((contexts) => {
             return contexts.map(el => spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(el.id));
         });
     }
@@ -68,7 +69,7 @@ class SpinalEventService {
             const id = node.getId().get();
             const steps = yield this._getSteps(id);
             const promises = steps.map(el => this._createGroupNode(contextId, id, el.name, el.color, el.order));
-            return Promise.all(promises).then(() => node.info);
+            return Promise.all(promises).then(() => spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(id));
         }));
     }
     ///////////////////////////////////////////////////////////////////////
@@ -76,7 +77,9 @@ class SpinalEventService {
     ///////////////////////////////////////////////////////////////////////
     static createEventGroup(contextId, catgoryId, name, color) {
         return spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.addGroup(contextId, catgoryId, name, color).then((node) => {
-            return node.info;
+            //@ts-ignore
+            spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(node.getId().get());
         });
     }
     static getEventsGroups(nodeId) {
@@ -144,37 +147,24 @@ class SpinalEventService {
     static updateEvent(eventId, newEventInfo) {
         return __awaiter(this, void 0, void 0, function* () {
             this._updateEventInformation(eventId, newEventInfo);
-            // if (newEventInfo.repeat) {
-            //     let info = SpinalGraphService.getInfo(eventId).get();
-            //     const periodicity = newEventInfo.periodicity.count * newEventInfo.periodicity.period;
-            //     const begin = newEventInfo.startDate + periodicity;
-            //     const end = newEventInfo.endDate;
-            //     info = { ...newEventInfo, contextId: info.contextId, groupId: info.groupId, nodeId: info.nodeId, user: info.user }
-            //     return this.createTaskBetween(begin, end, periodicity, info.contextId, info.groupId, info.nodeId, newEventInfo, info.userInfo)
-            // }
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(eventId);
         });
     }
     static removeEvent(eventId) {
         return __awaiter(this, void 0, void 0, function* () {
-            //console.log("removeEvent");
             const groupInfo = yield this._getGroupId(eventId);
-            // console.log("groupInfo", groupInfo);
             if (groupInfo) {
-                return spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.unLinkElementToGroup(groupInfo.id.get(), eventId).then((result) => __awaiter(this, void 0, void 0, function* () {
-                    // console.log(result);
+                return spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.unLinkElementToGroup(groupInfo.id.get(), eventId).then(() => __awaiter(this, void 0, void 0, function* () {
                     const nodeInfo = yield this._getNodeId(eventId);
-                    if (nodeInfo) {
-                        // console.log("nodeInfo", nodeInfo);
+                    if (nodeInfo)
                         return spinal_env_viewer_graph_service_1.SpinalGraphService.removeChild(nodeInfo.id.get(), eventId, constants_1.RELATION_NAME, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
-                    }
                 }));
             }
         });
     }
-    static createOrgetDefaultTreeStructure() {
+    static createOrgetDefaultTreeStructure(graph) {
         return __awaiter(this, void 0, void 0, function* () {
-            const context = yield spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.createGroupContext(constants_1.DEFAULT_CONTEXT_NAME, SpinalEvent_1.SpinalEvent.EVENT_TYPE);
+            const context = yield spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.createGroupContext(constants_1.DEFAULT_CONTEXT_NAME, SpinalEvent_1.SpinalEvent.EVENT_TYPE, graph);
             const contextId = context.getId().get();
             const category = yield this.createEventCategory(contextId, constants_1.DEFAULT_CATEGORY_NAME, "");
             const group = yield this.createEventGroup(contextId, category.id.get(), constants_1.DEFAULT_GROUP_NAME, "#fff000");
@@ -192,31 +182,27 @@ class SpinalEventService {
     //                              PRIVATES                               //
     /////////////////////////////////////////////////////////////////////////
     static _updateEventInformation(eventId, newEventInfo) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const event = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(eventId);
-            if (typeof event === "undefined")
-                return;
-            for (const key in newEventInfo) {
-                if (Object.prototype.hasOwnProperty.call(newEventInfo, key)) {
-                    if (event.info[key]) {
-                        event.info.mod_attr(key, newEventInfo[key]);
-                    }
-                    else {
-                        event.info.add_attr({ [key]: newEventInfo[key] });
-                    }
+        const event = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(eventId);
+        if (typeof event === "undefined")
+            return;
+        for (const key in newEventInfo) {
+            if (Object.prototype.hasOwnProperty.call(newEventInfo, key)) {
+                if (event.info[key]) {
+                    event.info.mod_attr(key, newEventInfo[key]);
+                }
+                else {
+                    event.info.add_attr({ [key]: newEventInfo[key] });
                 }
             }
-        });
+        }
     }
     static _getSteps(contextId) {
-        return __awaiter(this, void 0, void 0, function* () {
+        return new Promise((resolve) => {
             const info = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(contextId);
             if (!info.steps)
-                return [];
-            return new Promise((resolve) => {
-                info.steps.load((data) => {
-                    resolve(data.get());
-                });
+                return resolve([]);
+            info.steps.load((data) => {
+                resolve(data.get());
             });
         });
     }

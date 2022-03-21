@@ -22,18 +22,24 @@
  * with this file. If not, see
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Period = exports.SpinalEventService = exports.SpinalEvent = exports.RELATION_NAME = exports.EVENT_TYPE = exports.CONTEXT_TYPE = void 0;
+exports.SpinalEventService = exports.SpinalEvent = void 0;
 const TaskService_1 = require("./services/TaskService");
 Object.defineProperty(exports, "SpinalEventService", { enumerable: true, get: function () { return TaskService_1.SpinalEventService; } });
-const constants_1 = require("./types/constants");
-Object.defineProperty(exports, "CONTEXT_TYPE", { enumerable: true, get: function () { return constants_1.CONTEXT_TYPE; } });
-Object.defineProperty(exports, "EVENT_TYPE", { enumerable: true, get: function () { return constants_1.EVENT_TYPE; } });
-Object.defineProperty(exports, "RELATION_NAME", { enumerable: true, get: function () { return constants_1.RELATION_NAME; } });
 const SpinalEvent_1 = require("./models/SpinalEvent");
 Object.defineProperty(exports, "SpinalEvent", { enumerable: true, get: function () { return SpinalEvent_1.SpinalEvent; } });
-const EventInterface_1 = require("./types/EventInterface");
-Object.defineProperty(exports, "Period", { enumerable: true, get: function () { return EventInterface_1.Period; } });
+__exportStar(require("./types/constants"), exports);
+__exportStar(require("./types/EventInterface"), exports);
 const globalRoot = typeof window === "undefined" ? global : window;
 if (typeof globalRoot.spinal === 'undefined')
     globalRoot.spinal = {};
