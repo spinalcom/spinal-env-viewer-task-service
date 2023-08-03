@@ -5,7 +5,7 @@ export declare class SpinalEventService {
         name: string;
         order: any;
         color: any;
-    }>): Promise<SpinalNodeRef>;
+    }>, graph?: SpinalGraph): Promise<SpinalNodeRef>;
     static getEventContexts(graph?: SpinalGraph<any>): Promise<SpinalNodeRef[]>;
     static getEventsCategories(nodeId: string): Promise<SpinalNodeRef[]>;
     static createEventCategory(contextId: string, name: string, icon: string): Promise<SpinalNodeRef>;

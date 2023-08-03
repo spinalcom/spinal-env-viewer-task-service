@@ -45,9 +45,9 @@ class SpinalEventService {
     ///////////////////////////////////////////////////////////////////////
     //                          CONTEXTS                                 //
     ///////////////////////////////////////////////////////////////////////
-    static createEventContext(name, steps) {
+    static createEventContext(name, steps, graph) {
         steps = steps || [];
-        return spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.createGroupContext(name, SpinalEvent_1.SpinalEvent.EVENT_TYPE).then((context) => {
+        return spinal_env_viewer_plugin_group_manager_service_1.groupManagerService.createGroupContext(name, SpinalEvent_1.SpinalEvent.EVENT_TYPE, graph).then((context) => {
             context.info.add_attr({ steps: new spinal_core_connectorjs_type_1.Ptr(new spinal_core_connectorjs_type_1.Lst(steps)) });
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(context.getId().get());
         });

@@ -1,14 +1,14 @@
 export declare const Period: Readonly<{
-    day: number;
-    week: number;
-    month: number;
-    year: number;
+    day: 86400000;
+    week: 604800000;
+    month: 2629800000;
+    year: 31557600000;
 }>;
 export declare const invers_period: Readonly<{
-    86400000: string;
-    604800000: string;
-    2629800000: string;
-    31557600000: string;
+    86400000: "day";
+    604800000: "week";
+    2629800000: "month";
+    31557600000: "year";
 }>;
 export interface EventInterface {
     contextId?: string;

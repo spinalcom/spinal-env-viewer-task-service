@@ -39,9 +39,9 @@ export class SpinalEventService {
     ///////////////////////////////////////////////////////////////////////
     //                          CONTEXTS                                 //
     ///////////////////////////////////////////////////////////////////////
-    public static createEventContext(name: string, steps?: Array<{ name: string, order, color }>): Promise<SpinalNodeRef> {
+    public static createEventContext(name: string, steps?: Array<{ name: string, order, color }>, graph?: SpinalGraph): Promise<SpinalNodeRef> {
         steps = steps || [];
-        return groupManagerService.createGroupContext(name, SpinalEvent.EVENT_TYPE).then((context) => {
+        return groupManagerService.createGroupContext(name, SpinalEvent.EVENT_TYPE, graph).then((context) => {
             context.info.add_attr({ steps: new Ptr(new Lst(steps)) });
             return SpinalGraphService.getInfo(context.getId().get());
         })

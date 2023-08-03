@@ -1,6 +1,6 @@
 {
   "name": "spinal-env-viewer-task-service",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "",
   "types": "declarations",
   "main": "dist/index.js",
@@ -38,7 +38,7 @@
     "ts-node": "^7.0.1",
     "tslint": "^5.11.0",
     "tslint-config-airbnb": "^5.11.1",
-    "typescript": "^3.2.2",
+    "typescript": "^5.1.6",
     "typescript-eslint-parser": "^21.0.2"
   }
 }
